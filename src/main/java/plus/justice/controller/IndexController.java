@@ -1,4 +1,4 @@
-package plus.justice.demo.controller;
+package plus.justice.controller;
 
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestMapping;
