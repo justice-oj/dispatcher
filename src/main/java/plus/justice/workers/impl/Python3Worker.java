@@ -1,9 +1,10 @@
-package plus.justice.workers;
+package plus.justice.workers.impl;
 
 import org.slf4j.Logger;
-import plus.justice.models.Submission;
+import plus.justice.models.database.Submission;
+import plus.justice.workers.IWorker;
 
-public class Python3Worker implements Worker {
+public class Python3Worker implements IWorker {
     private Submission submission;
     private Logger logger;
 
@@ -14,7 +15,7 @@ public class Python3Worker implements Worker {
 
     @Override
     public void concatenate() {
-        logger.info("Python 3 Worker concatenate submission #" + submission.getId());
+        logger.info("Python3 Worker concatenate submission #" + submission.getId());
     }
 
     @Override

@@ -1,4 +1,4 @@
-package plus.justice.models;
+package plus.justice.models.amqp;
 
 public class QueueMessage {
     private Long id;

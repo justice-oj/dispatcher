@@ -7,12 +7,12 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
-import plus.justice.models.QueueMessage;
-import plus.justice.models.Submission;
-import plus.justice.models.TaskResult;
+import plus.justice.models.amqp.QueueMessage;
+import plus.justice.models.database.Submission;
+import plus.justice.models.sandbox.TaskResult;
 import plus.justice.repositories.SubmissionRepository;
 import plus.justice.support.WorkerFactory;
-import plus.justice.workers.Worker;
+import plus.justice.workers.IWorker;
 
 import java.io.IOException;
 
@@ -37,7 +37,7 @@ public class Receiver {
         logger.info("Message:" + message.toString());
         logger.info("Submission:" + submission.toString());
 
-        Worker worker = factory.createWorker(submission, logger);
+        IWorker worker = factory.createWorker(submission, logger);
         worker.concatenate();
         worker.compile();
         TaskResult taskResult = mapper.readValue(worker.run(), TaskResult.class);

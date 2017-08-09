@@ -1,9 +1,10 @@
-package plus.justice.workers;
+package plus.justice.workers.impl;
 
 import org.slf4j.Logger;
-import plus.justice.models.Submission;
+import plus.justice.models.database.Submission;
+import plus.justice.workers.IWorker;
 
-public class CWorker implements Worker {
+public class CWorker implements IWorker {
     private Submission submission;
     private Logger logger;
 
@@ -14,12 +15,12 @@ public class CWorker implements Worker {
 
     @Override
     public void concatenate() {
-        logger.info("CWorker concatenate submission #" + submission.getId());
+        logger.info("C Worker concatenate submission #" + submission.getId());
     }
 
     @Override
     public void compile() {
-        logger.info("CWorker compile submission #" + submission.getId());
+        logger.info("C Worker compile submission #" + submission.getId());
     }
 
     @Override

@@ -1,6 +1,6 @@
 package plus.justice.workers;
 
-public interface Worker {
+public interface IWorker {
     /**
      * concatenate codes and save to disk
      */

@@ -1,4 +1,4 @@
-package plus.justice.models;
+package plus.justice.models.database;
 
 import javax.persistence.*;
 import java.util.Date;

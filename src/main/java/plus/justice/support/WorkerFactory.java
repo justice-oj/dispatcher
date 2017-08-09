@@ -2,13 +2,14 @@ package plus.justice.support;
 
 import org.slf4j.Logger;
 import org.springframework.stereotype.Component;
-import plus.justice.models.Submission;
+import plus.justice.models.database.Submission;
 import plus.justice.workers.*;
+import plus.justice.workers.impl.*;
 
 @Component
 public class WorkerFactory {
-    public Worker createWorker(Submission submission, Logger logger) {
-        Worker worker;
+    public IWorker createWorker(Submission submission, Logger logger) {
+        IWorker worker;
         switch (submission.getLanguage()) {
             case Submission.LANGUAGE_C:
                 worker = new CWorker(submission, logger);
