@@ -6,6 +6,20 @@ import java.util.Date;
 @Entity
 @Table(name = "t_submission")
 public class Submission {
+    public final static int LANGUAGE_C = 0;
+    public final static int LANGUAGE_CPP = 1;
+    public final static int LANGUAGE_PYTHON2 = 2;
+    public final static int LANGUAGE_PYTHON3 = 3;
+    public final static int LANGUAGE_JAVA = 4;
+
+    public final static int STATUS_QUEUE = -1;
+    public final static int STATUS_AC = 0;
+    public final static int STATUS_CE = 1;
+    public final static int STATUS_RE = 2;
+    public final static int STATUS_TLE = 3;
+    public final static int STATUS_MLE = 4;
+    public final static int STATUS_WA = 5;
+
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;

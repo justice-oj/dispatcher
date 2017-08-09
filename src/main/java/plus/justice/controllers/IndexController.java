@@ -1,4 +1,4 @@
-package plus.justice.controller;
+package plus.justice.controllers;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
@@ -11,7 +11,7 @@ import plus.justice.models.Submission;
 import plus.justice.repositories.SubmissionRepository;
 
 @Controller
-@RequestMapping(path="/service")
+@RequestMapping(path="/api")
 public class IndexController {
     private final SubmissionRepository submissionRepository;
 
@@ -23,10 +23,5 @@ public class IndexController {
     @GetMapping(path="/submission")
     public @ResponseBody Submission getSubmission(@RequestParam Long id) {
         return submissionRepository.findOne(id);
-    }
-
-    @GetMapping(path="/all")
-    public @ResponseBody Iterable<Submission> getAllSubmissions() {
-        return submissionRepository.findAll();
     }
 }
