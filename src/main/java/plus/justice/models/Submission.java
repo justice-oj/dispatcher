@@ -1,6 +1,7 @@
 package plus.justice.models;
 
 import javax.persistence.*;
+import java.util.Date;
 
 @Entity
 @Table(name = "t_submission")
@@ -8,15 +9,38 @@ public class Submission {
     @Id
     @GeneratedValue(strategy = GenerationType.AUTO)
     private Long id;
+
+    @Column(name = "user_id")
     private Integer userId;
+
+    @Column(name = "problem_id")
     private Integer problemId;
+
+    @Column(name = "language")
     private Integer language;
+
+    @Column(name = "code")
     private String code;
+
+    @Column(name = "status")
     private Integer status;
+
+    @Column(name = "runtime")
     private Integer runtime;
+
+    @Column(name = "memory")
     private Integer memory;
-    private String createdAt;
-    private String updatedAt;
+
+    @Column(name = "created_at")
+    private Date createdAt;
+
+    @Column(name = "updated_at")
+    private Date updatedAt;
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = new Date();
+    }
 
     public Long getId() {
         return id;
@@ -82,19 +106,35 @@ public class Submission {
         this.memory = memory;
     }
 
-    public String getCreatedAt() {
+    public Date getCreatedAt() {
         return createdAt;
     }
 
-    public void setCreatedAt(String createdAt) {
+    public void setCreatedAt(Date createdAt) {
         this.createdAt = createdAt;
     }
 
-    public String getUpdatedAt() {
+    public Date getUpdatedAt() {
         return updatedAt;
     }
 
-    public void setUpdatedAt(String updatedAt) {
+    public void setUpdatedAt(Date updatedAt) {
         this.updatedAt = updatedAt;
+    }
+
+    @Override
+    public String toString() {
+        return "Submission{" +
+                "id=" + id +
+                ", userId=" + userId +
+                ", problemId=" + problemId +
+                ", language=" + language +
+                ", code='" + code + '\'' +
+                ", status=" + status +
+                ", runtime=" + runtime +
+                ", memory=" + memory +
+                ", createdAt='" + createdAt + '\'' +
+                ", updatedAt='" + updatedAt + '\'' +
+                '}';
     }
 }
