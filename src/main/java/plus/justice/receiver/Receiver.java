@@ -1,6 +1,5 @@
 package plus.justice.receiver;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
@@ -10,6 +9,7 @@ import org.springframework.stereotype.Component;
 import plus.justice.models.amqp.QueueMessage;
 import plus.justice.models.database.Submission;
 import plus.justice.models.sandbox.TaskResult;
+import plus.justice.repositories.ProblemRepository;
 import plus.justice.repositories.SubmissionRepository;
 import plus.justice.support.WorkerFactory;
 import plus.justice.workers.IWorker;
@@ -21,35 +21,40 @@ import java.io.IOException;
 public class Receiver {
     private static final Logger logger = LoggerFactory.getLogger(Receiver.class);
     private final SubmissionRepository submissionRepository;
+    private final ProblemRepository problemRepository;
     private final WorkerFactory factory;
-    private final ObjectMapper mapper;
 
     @Autowired
-    public Receiver(SubmissionRepository submissionRepository, WorkerFactory factory, ObjectMapper mapper) {
+    public Receiver(
+            SubmissionRepository submissionRepository,
+            ProblemRepository problemRepository,
+            WorkerFactory factory
+    ) {
         this.submissionRepository = submissionRepository;
+        this.problemRepository = problemRepository;
         this.factory = factory;
-        this.mapper = mapper;
     }
 
     @RabbitListener(queues = "${justice.rabbitmq.queue.name}")
-    public void handleMessage(QueueMessage message) throws InterruptedException, IOException {
+    public void handleMessage(QueueMessage message) {
         Submission submission = submissionRepository.findOne(message.getId());
-        logger.info("Message:" + message.toString());
         logger.info("Submission:" + submission.toString());
 
-        IWorker worker = factory.createWorker(submission, logger);
-        worker.concatenate();
-        worker.compile();
-        TaskResult taskResult = mapper.readValue(worker.run(), TaskResult.class);
-        logger.info("Sandbox returns: " + taskResult.toString());
+        IWorker worker = factory.createWorker(submission.getLanguage());
+        try {
+            TaskResult taskResult = worker.work(submission);
+            logger.info("Sandbox returns: " + taskResult.toString());
 
-        if (taskResult.getStatus() == Submission.STATUS_AC) {
-            submission.setStatus(taskResult.getStatus());
-            submission.setRuntime(taskResult.getRuntime());
-            submission.setMemory(taskResult.getMemory());
-        } else {
-            submission.setStatus(taskResult.getStatus());
+            if (taskResult.getStatus() == Submission.STATUS_AC) {
+                submission.setStatus(taskResult.getStatus());
+                submission.setRuntime(taskResult.getRuntime());
+                submission.setMemory(taskResult.getMemory());
+            } else {
+                submission.setStatus(taskResult.getStatus());
+            }
+            submissionRepository.save(submission);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-        submissionRepository.save(submission);
     }
 }
