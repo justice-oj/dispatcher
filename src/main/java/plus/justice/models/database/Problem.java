@@ -63,19 +63,19 @@ public class Problem {
         this.level = level;
     }
 
-    public Integer getRuntime_limit() {
+    public Integer getRuntimeLimit() {
         return runtime_limit;
     }
 
-    public void setRuntime_limit(Integer runtime_limit) {
+    public void setRuntimeLimit(Integer runtime_limit) {
         this.runtime_limit = runtime_limit;
     }
 
-    public Integer getMemory_limit() {
+    public Integer getMemoryLimit() {
         return memory_limit;
     }
 
-    public void setMemory_limit(Integer memory_limit) {
+    public void setMemoryLimit(Integer memory_limit) {
         this.memory_limit = memory_limit;
     }
 

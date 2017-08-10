@@ -5,7 +5,9 @@ import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
+import org.springframework.stereotype.Component;
 import plus.justice.models.database.Submission;
+import plus.justice.models.database.TestCase;
 import plus.justice.models.sandbox.TaskResult;
 import plus.justice.workers.AbstractWorker;
 
@@ -15,7 +17,10 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.List;
 
+@Component
 public class JavaWorker extends AbstractWorker {
     private File tmpDir;
     private String tmpFileName;
@@ -38,7 +43,7 @@ public class JavaWorker extends AbstractWorker {
 
         DefaultExecutor executor = new DefaultExecutor();
         executor.setWorkingDirectory(tmpDir);
-        executor.setWatchdog(new ExecuteWatchdog(60000));
+        executor.setWatchdog(new ExecuteWatchdog(10000));
 
         TaskResult compile = new TaskResult();
         if (executor.execute(cmd) == OK) {
@@ -57,23 +62,35 @@ public class JavaWorker extends AbstractWorker {
         CommandLine cmd = new CommandLine("java");
         cmd.addArgument("Main");
 
-        ByteArrayInputStream stdin = new ByteArrayInputStream("07:05:45PM".getBytes());
-        ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
+        List<TestCase> testCases = new ArrayList<>();
+        TestCase a = new TestCase();
+        a.setInput("07:05:45PM");
+        a.setOutput("19:05:45");
+        TestCase b = new TestCase();
+        b.setInput("11:59:59PM");
+        b.setOutput("23:59:59");
+        testCases.add(a);
+        testCases.add(b);
 
-        DefaultExecutor executor = new DefaultExecutor();
-        executor.setWorkingDirectory(tmpDir);
-        executor.setWatchdog(new ExecuteWatchdog(10000));
-        executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
-        executor.execute(cmd);
+        for (TestCase testCase : testCases) {
+            ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
+            ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
+            DefaultExecutor executor = new DefaultExecutor();
+            executor.setWorkingDirectory(tmpDir);
+            executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
+            executor.setWatchdog(new ExecuteWatchdog(10000));
+            executor.execute(cmd);
 
-        if (stdout.toString().equals("19:05:45")) {
-            run.setMemory(90);
-            run.setRuntime(102);
-            run.setStatus(Submission.STATUS_AC);
-        } else {
-            run.setStatus(Submission.STATUS_WA);
-            run.setError("should be 19:05:45");
+            if (!stdout.toString().equals(testCase.getOutput())) {
+                run.setStatus(Submission.STATUS_WA);
+                run.setError(testCase.getInput() + " | " + testCase.getOutput() + " | " + stdout.toString());
+                return run;
+            }
         }
+
+        run.setMemory(90);
+        run.setRuntime(102);
+        run.setStatus(Submission.STATUS_AC);
         return run;
     }
 
