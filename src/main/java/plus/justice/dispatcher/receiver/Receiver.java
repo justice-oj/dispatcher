@@ -1,4 +1,4 @@
-package plus.justice.receiver;
+package plus.justice.dispatcher.receiver;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -6,13 +6,11 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
-import plus.justice.models.amqp.QueueMessage;
-import plus.justice.models.database.Submission;
-import plus.justice.models.sandbox.TaskResult;
-import plus.justice.repositories.ProblemRepository;
-import plus.justice.repositories.SubmissionRepository;
-import plus.justice.support.WorkerFactory;
-import plus.justice.workers.IWorker;
+import plus.justice.dispatcher.models.amqp.QueueMessage;
+import plus.justice.dispatcher.models.database.Submission;
+import plus.justice.dispatcher.models.sandbox.TaskResult;
+import plus.justice.dispatcher.repositories.SubmissionRepository;
+import plus.justice.dispatcher.workers.impl.JavaWorker;
 
 import java.io.IOException;
 
@@ -21,18 +19,15 @@ import java.io.IOException;
 public class Receiver {
     private static final Logger logger = LoggerFactory.getLogger(Receiver.class);
     private final SubmissionRepository submissionRepository;
-    private final ProblemRepository problemRepository;
-    private final WorkerFactory factory;
+    private final JavaWorker javaWorker;
 
     @Autowired
     public Receiver(
             SubmissionRepository submissionRepository,
-            ProblemRepository problemRepository,
-            WorkerFactory factory
+            JavaWorker javaWorker
     ) {
         this.submissionRepository = submissionRepository;
-        this.problemRepository = problemRepository;
-        this.factory = factory;
+        this.javaWorker = javaWorker;
     }
 
     @RabbitListener(queues = "${justice.rabbitmq.queue.name}")
@@ -40,9 +35,8 @@ public class Receiver {
         Submission submission = submissionRepository.findOne(message.getId());
         logger.info("Submission:" + submission.toString());
 
-        IWorker worker = factory.createWorker(submission.getLanguage());
         try {
-            TaskResult taskResult = worker.work(submission);
+            TaskResult taskResult = javaWorker.work(submission);
             logger.info("Sandbox returns: " + taskResult.toString());
 
             if (taskResult.getStatus() == Submission.STATUS_AC) {

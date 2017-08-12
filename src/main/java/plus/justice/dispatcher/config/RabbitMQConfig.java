@@ -1,4 +1,4 @@
-package plus.justice.config;
+package plus.justice.dispatcher.config;
 
 import org.springframework.amqp.core.Binding;
 import org.springframework.amqp.core.BindingBuilder;

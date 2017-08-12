@@ -1,7 +1,7 @@
-package plus.justice.workers;
+package plus.justice.dispatcher.workers;
 
-import plus.justice.models.database.Submission;
-import plus.justice.models.sandbox.TaskResult;
+import plus.justice.dispatcher.models.database.Submission;
+import plus.justice.dispatcher.models.sandbox.TaskResult;
 
 import java.io.IOException;
 

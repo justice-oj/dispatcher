@@ -1,4 +1,4 @@
-package plus.justice;
+package plus.justice.dispatcher;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;

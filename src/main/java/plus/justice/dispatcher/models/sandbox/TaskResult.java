@@ -1,4 +1,4 @@
-package plus.justice.models.sandbox;
+package plus.justice.dispatcher.models.sandbox;
 
 public class TaskResult {
     private Integer runtime;

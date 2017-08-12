@@ -1,15 +1,16 @@
-package plus.justice.workers.impl;
+package plus.justice.dispatcher.workers.impl;
 
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
-import plus.justice.models.database.Submission;
-import plus.justice.models.database.TestCase;
-import plus.justice.models.sandbox.TaskResult;
-import plus.justice.workers.AbstractWorker;
+import plus.justice.dispatcher.models.database.Submission;
+import plus.justice.dispatcher.models.database.TestCase;
+import plus.justice.dispatcher.models.sandbox.TaskResult;
+import plus.justice.dispatcher.repositories.TestCaseRepository;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -17,17 +18,36 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.List;
 
 @Component
-public class JavaWorker extends AbstractWorker {
+public class JavaWorker {
     private File tmpDir;
     private String tmpFileName;
+    private int OK = 0;
+    private final TestCaseRepository testCaseRepository;
 
-    @Override
-    public void save(Submission submission) throws IOException {
-        String tmpDirName = codeDir + "/" + submission.getId();
+    @Autowired
+    public JavaWorker(TestCaseRepository testCaseRepository) {
+        this.testCaseRepository = testCaseRepository;
+    }
+
+    public TaskResult work(Submission submission) throws IOException {
+        save(submission);
+
+        TaskResult result = compile();
+        if (result.getStatus() != OK) {
+            clean();
+            return result;
+        }
+
+        result = run();
+        clean();
+        return result;
+    }
+
+    private void save(Submission submission) throws IOException {
+        String tmpDirName = "/var/log/justice/code/" + submission.getId();
 
         tmpDir = new File(tmpDirName);
         tmpFileName = tmpDirName + "/Main.java";
@@ -36,8 +56,7 @@ public class JavaWorker extends AbstractWorker {
         Files.write(Paths.get(tmpFileName), submission.getCode().getBytes());
     }
 
-    @Override
-    public TaskResult compile(Submission submission) throws IOException {
+    private TaskResult compile() throws IOException {
         CommandLine cmd = new CommandLine("javac");
         cmd.addArgument(tmpFileName);
 
@@ -55,23 +74,13 @@ public class JavaWorker extends AbstractWorker {
         return compile;
     }
 
-    @Override
-    public TaskResult run(Submission submission) throws IOException {
+    private TaskResult run() throws IOException {
         TaskResult run = new TaskResult();
 
         CommandLine cmd = new CommandLine("java");
         cmd.addArgument("Main");
 
-        List<TestCase> testCases = new ArrayList<>();
-        TestCase a = new TestCase();
-        a.setInput("07:05:45PM");
-        a.setOutput("19:05:45");
-        TestCase b = new TestCase();
-        b.setInput("11:59:59PM");
-        b.setOutput("23:59:59");
-        testCases.add(a);
-        testCases.add(b);
-
+        List<TestCase> testCases = testCaseRepository.findByProblemId(1L);
         for (TestCase testCase : testCases) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
@@ -86,6 +95,7 @@ public class JavaWorker extends AbstractWorker {
                 run.setError(testCase.getInput() + " | " + testCase.getOutput() + " | " + stdout.toString());
                 return run;
             }
+            System.out.println(testCase.getInput() + "... OK!");
         }
 
         run.setMemory(90);
@@ -94,8 +104,7 @@ public class JavaWorker extends AbstractWorker {
         return run;
     }
 
-    @Override
-    public void clean() throws IOException {
+    private void clean() throws IOException {
         FileUtils.deleteDirectory(tmpDir);
     }
 }

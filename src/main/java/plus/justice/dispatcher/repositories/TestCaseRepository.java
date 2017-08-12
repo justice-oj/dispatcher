@@ -1,9 +1,9 @@
-package plus.justice.repositories;
+package plus.justice.dispatcher.repositories;
 
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.CrudRepository;
 import org.springframework.data.repository.query.Param;
-import plus.justice.models.database.TestCase;
+import plus.justice.dispatcher.models.database.TestCase;
 
 import java.util.List;
 

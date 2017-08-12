@@ -1,7 +1,7 @@
-package plus.justice.repositories;
+package plus.justice.dispatcher.repositories;
 
 import org.springframework.data.repository.CrudRepository;
-import plus.justice.models.database.Problem;
+import plus.justice.dispatcher.models.database.Problem;
 
 public interface ProblemRepository extends CrudRepository<Problem, Long> {
 }

@@ -1,4 +1,4 @@
-package plus.justice.models.database;
+package plus.justice.dispatcher.models.database;
 
 import javax.persistence.*;
 import java.util.Date;
