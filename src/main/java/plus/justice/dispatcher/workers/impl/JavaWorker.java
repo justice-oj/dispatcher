@@ -1,9 +1,6 @@
 package plus.justice.dispatcher.workers.impl;
 
-import org.apache.commons.exec.CommandLine;
-import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteWatchdog;
-import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.exec.*;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
@@ -24,7 +21,7 @@ import java.util.List;
 public class JavaWorker {
     private File tmpDir;
     private String tmpFileName;
-    private int OK = 0;
+    private final int OK = 0;
     private final TestCaseRepository testCaseRepository;
 
     @Autowired
@@ -60,16 +57,19 @@ public class JavaWorker {
         CommandLine cmd = new CommandLine("javac");
         cmd.addArgument(tmpFileName);
 
+        ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         DefaultExecutor executor = new DefaultExecutor();
         executor.setWorkingDirectory(tmpDir);
+        executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
         executor.setWatchdog(new ExecuteWatchdog(10000));
 
         TaskResult compile = new TaskResult();
-        if (executor.execute(cmd) == OK) {
-            compile.setStatus(Submission.STATUS_AC);
-        } else {
+        try {
+            executor.execute(cmd);
+            compile.setStatus(OK);
+        } catch (ExecuteException e) {
             compile.setStatus(Submission.STATUS_CE);
-            compile.setError("Compile error");
+            compile.setError(stderr.toString());
         }
         return compile;
     }
@@ -88,18 +88,26 @@ public class JavaWorker {
             executor.setWorkingDirectory(tmpDir);
             executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
             executor.setWatchdog(new ExecuteWatchdog(10000));
-            executor.execute(cmd);
+
+            try {
+                executor.execute(cmd);
+            } catch (Exception e) {
+                run.setStatus(Submission.STATUS_RE);
+                run.setError(e.getMessage());
+                return run;
+            }
 
             if (!stdout.toString().equals(testCase.getOutput())) {
                 run.setStatus(Submission.STATUS_WA);
-                run.setError(testCase.getInput() + " | " + testCase.getOutput() + " | " + stdout.toString());
+                run.setInput(testCase.getInput());
+                run.setOutput(stdout.toString());
+                run.setExpected(testCase.getOutput());
                 return run;
             }
-            System.out.println(testCase.getInput() + "... OK!");
         }
 
-        run.setMemory(90);
-        run.setRuntime(102);
+        run.setMemory(101);
+        run.setRuntime(108);
         run.setStatus(Submission.STATUS_AC);
         return run;
     }

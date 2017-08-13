@@ -39,16 +39,20 @@ public class Receiver {
             TaskResult taskResult = javaWorker.work(submission);
             logger.info("Sandbox returns: " + taskResult.toString());
 
+            submission.setStatus(taskResult.getStatus());
             if (taskResult.getStatus() == Submission.STATUS_AC) {
-                submission.setStatus(taskResult.getStatus());
                 submission.setRuntime(taskResult.getRuntime());
                 submission.setMemory(taskResult.getMemory());
+            } else if (taskResult.getStatus() == Submission.STATUS_WA) {
+                submission.setInput(taskResult.getInput());
+                submission.setOutput(taskResult.getOutput());
+                submission.setExpected(taskResult.getExpected());
             } else {
-                submission.setStatus(taskResult.getStatus());
+                submission.setError(taskResult.getError());
             }
             submissionRepository.save(submission);
         } catch (IOException e) {
-            e.printStackTrace();
+            logger.error(e.toString());
         }
     }
 }

@@ -45,6 +45,18 @@ public class Submission {
     @Column(name = "memory")
     private Integer memory;
 
+    @Column(name = "error")
+    private String error;
+
+    @Column(name = "input")
+    private String input;
+
+    @Column(name = "output")
+    private String output;
+
+    @Column(name = "expected")
+    private String expected;
+
     @Column(name = "created_at")
     private Date createdAt;
 
@@ -120,6 +132,38 @@ public class Submission {
         this.memory = memory;
     }
 
+    public String getError() {
+        return error;
+    }
+
+    public void setError(String error) {
+        this.error = error;
+    }
+
+    public String getInput() {
+        return input;
+    }
+
+    public void setInput(String input) {
+        this.input = input;
+    }
+
+    public String getOutput() {
+        return output;
+    }
+
+    public void setOutput(String output) {
+        this.output = output;
+    }
+
+    public String getExpected() {
+        return expected;
+    }
+
+    public void setExpected(String expected) {
+        this.expected = expected;
+    }
+
     public Date getCreatedAt() {
         return createdAt;
     }
@@ -147,8 +191,12 @@ public class Submission {
                 ", status=" + status +
                 ", runtime=" + runtime +
                 ", memory=" + memory +
-                ", createdAt='" + createdAt + '\'' +
-                ", updatedAt='" + updatedAt + '\'' +
+                ", error='" + error + '\'' +
+                ", input='" + input + '\'' +
+                ", output='" + output + '\'' +
+                ", expected='" + expected + '\'' +
+                ", createdAt=" + createdAt +
+                ", updatedAt=" + updatedAt +
                 '}';
     }
 }
