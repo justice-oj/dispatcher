@@ -4,9 +4,11 @@ import org.apache.commons.exec.*;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import plus.justice.dispatcher.models.database.Problem;
 import plus.justice.dispatcher.models.database.Submission;
 import plus.justice.dispatcher.models.database.TestCase;
 import plus.justice.dispatcher.models.sandbox.TaskResult;
+import plus.justice.dispatcher.repositories.ProblemRepository;
 import plus.justice.dispatcher.repositories.TestCaseRepository;
 
 import java.io.ByteArrayInputStream;
@@ -23,10 +25,12 @@ public class JavaWorker {
     private String tmpFileName;
     private final int OK = 0;
     private final TestCaseRepository testCaseRepository;
+    private final ProblemRepository problemRepository;
 
     @Autowired
-    public JavaWorker(TestCaseRepository testCaseRepository) {
+    public JavaWorker(TestCaseRepository testCaseRepository, ProblemRepository problemRepository) {
         this.testCaseRepository = testCaseRepository;
+        this.problemRepository = problemRepository;
     }
 
     public TaskResult work(Submission submission) throws IOException {
@@ -38,7 +42,7 @@ public class JavaWorker {
             return result;
         }
 
-        result = run();
+        result = run(submission);
         clean();
         return result;
     }
@@ -74,13 +78,20 @@ public class JavaWorker {
         return compile;
     }
 
-    private TaskResult run() throws IOException {
+    private TaskResult run(Submission submission) throws IOException {
+        Problem problem = problemRepository.findOne(submission.getProblemId());
+
         TaskResult run = new TaskResult();
 
         CommandLine cmd = new CommandLine("java");
+        cmd.addArgument("-Djava.security.manager");
+        cmd.addArgument("-Djava.security.policy==" + new File("resources/policy").getPath());
+        cmd.addArgument("-Xms" + problem.getMemoryLimit() + "m");
+        cmd.addArgument("-Xmx" + problem.getMemoryLimit() + "m");
         cmd.addArgument("Main");
 
         List<TestCase> testCases = testCaseRepository.findByProblemId(1L);
+        long startTime = System.nanoTime();
         for (TestCase testCase : testCases) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
@@ -92,8 +103,8 @@ public class JavaWorker {
             try {
                 executor.execute(cmd);
             } catch (Exception e) {
-                run.setStatus(Submission.STATUS_RE);
-                run.setError(stderr.toString());
+                run.setStatus(Submission.STATUS_TLE);
+                run.setError("Time Limit Exceeded");
                 return run;
             }
 
@@ -106,8 +117,8 @@ public class JavaWorker {
             }
         }
 
-        run.setMemory(101);
-        run.setRuntime(108);
+        run.setRuntime((System.nanoTime() - startTime) / 1000000);
+        run.setMemory((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
         run.setStatus(Submission.STATUS_AC);
         return run;
     }

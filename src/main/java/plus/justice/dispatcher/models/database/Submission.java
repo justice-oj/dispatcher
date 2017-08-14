@@ -40,10 +40,10 @@ public class Submission {
     private Integer status;
 
     @Column(name = "runtime")
-    private Integer runtime;
+    private Long runtime;
 
     @Column(name = "memory")
-    private Integer memory;
+    private Long memory;
 
     @Column(name = "error")
     private String error;
@@ -116,19 +116,19 @@ public class Submission {
         this.status = status;
     }
 
-    public Integer getRuntime() {
+    public Long getRuntime() {
         return runtime;
     }
 
-    public void setRuntime(Integer runtime) {
+    public void setRuntime(Long runtime) {
         this.runtime = runtime;
     }
 
-    public Integer getMemory() {
+    public Long getMemory() {
         return memory;
     }
 
-    public void setMemory(Integer memory) {
+    public void setMemory(Long memory) {
         this.memory = memory;
     }
 

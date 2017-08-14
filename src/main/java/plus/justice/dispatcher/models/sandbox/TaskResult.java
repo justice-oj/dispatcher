@@ -1,27 +1,27 @@
 package plus.justice.dispatcher.models.sandbox;
 
 public class TaskResult {
-    private Integer runtime;
-    private Integer memory;
+    private Long runtime;
+    private Long memory;
     private Integer status;
     private String error;
     private String input;
     private String output;
     private String expected;
 
-    public Integer getRuntime() {
+    public Long getRuntime() {
         return runtime;
     }
 
-    public void setRuntime(Integer runtime) {
+    public void setRuntime(Long runtime) {
         this.runtime = runtime;
     }
 
-    public Integer getMemory() {
+    public Long getMemory() {
         return memory;
     }
 
-    public void setMemory(Integer memory) {
+    public void setMemory(Long memory) {
         this.memory = memory;
     }
 
