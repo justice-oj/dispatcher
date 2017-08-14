@@ -93,7 +93,7 @@ public class JavaWorker {
                 executor.execute(cmd);
             } catch (Exception e) {
                 run.setStatus(Submission.STATUS_RE);
-                run.setError(e.getMessage());
+                run.setError(stderr.toString());
                 return run;
             }
 
