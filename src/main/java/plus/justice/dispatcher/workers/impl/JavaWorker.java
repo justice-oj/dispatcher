@@ -97,7 +97,7 @@ public class JavaWorker {
                 return run;
             }
 
-            if (!stdout.toString().equals(testCase.getOutput())) {
+            if (!stdout.toString().trim().equals(testCase.getOutput())) {
                 run.setStatus(Submission.STATUS_WA);
                 run.setInput(testCase.getInput());
                 run.setOutput(stdout.toString());
