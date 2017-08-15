@@ -15,6 +15,7 @@ import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
@@ -86,11 +87,10 @@ public class JavaWorker {
         CommandLine cmd = new CommandLine("java");
         cmd.addArgument("-Djava.security.manager");
         cmd.addArgument("-Djava.security.policy==" + new File("resources/policy").getPath());
-        cmd.addArgument("-Xms" + problem.getMemoryLimit() + "m");
         cmd.addArgument("-Xmx" + problem.getMemoryLimit() + "m");
         cmd.addArgument("Main");
 
-        List<TestCase> testCases = testCaseRepository.findByProblemId(1L);
+        List<TestCase> testCases = testCaseRepository.findByProblemId(submission.getProblemId());
         long startTime = System.nanoTime();
         for (TestCase testCase : testCases) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
@@ -118,7 +118,7 @@ public class JavaWorker {
         }
 
         run.setRuntime((System.nanoTime() - startTime) / 1000000);
-        run.setMemory((Runtime.getRuntime().totalMemory() - Runtime.getRuntime().freeMemory()) / (1024 * 1024));
+        run.setMemory(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed() / (1024 * 1024));
         run.setStatus(Submission.STATUS_AC);
         return run;
     }
