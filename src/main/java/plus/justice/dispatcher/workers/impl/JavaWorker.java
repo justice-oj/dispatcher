@@ -132,15 +132,15 @@ public class JavaWorker {
             executor.setWatchdog(watchdog);
 
             try {
-                int exitValue = executor.execute(cmd);
-                if (executor.isFailure(exitValue) && watchdog.killedProcess()) {
+                executor.execute(cmd);
+            } catch (final Exception e) {
+                if (watchdog.killedProcess()) {
                     run.setStatus(Submission.STATUS_TLE);
                     run.setError("Time Limit Exceeded");
-                    return run;
+                } else {
+                    run.setStatus(Submission.STATUS_RE);
+                    run.setError(stderr.toString());
                 }
-            } catch (final Exception e) {
-                run.setStatus(Submission.STATUS_RE);
-                run.setError(stderr.toString());
                 return run;
             }
 
