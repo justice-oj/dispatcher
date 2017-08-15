@@ -3,6 +3,8 @@ package plus.justice.dispatcher.workers.impl;
 import org.apache.commons.exec.*;
 import org.apache.commons.io.FileUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import plus.justice.dispatcher.models.database.Problem;
 import plus.justice.dispatcher.models.database.Submission;
@@ -21,10 +23,38 @@ import java.nio.file.Paths;
 import java.util.List;
 
 @Component
+@PropertySource("classpath:config.properties")
 public class JavaWorker {
-    private File tmpDir;
-    private String tmpFileName;
+    @Value("${justice.judger.java.classname}")
+    private String className;
+
+    @Value("${justice.judger.code.tmp.basedir}")
+    private String baseDir;
+
+    @Value("${justice.judger.javac.executable}")
+    private String javac;
+
+    @Value("${justice.judger.java.executable}")
+    private String java;
+
+    @Value("${justice.judger.java.policy.file}")
+    private String policyFile;
+
+    @Value("${justice.judger.watchdog.timeout}")
+    private Integer watchdogTimeout;
+
+    // current submission
+    private Submission submission;
+
+    // current working directory
+    private String cwd;
+
+    // filename with abs path
+    private String file;
+
+    // tmp taskResult exitCode, 0 stands for OK
     private final int OK = 0;
+
     private final TestCaseRepository testCaseRepository;
     private final ProblemRepository problemRepository;
 
@@ -35,38 +65,37 @@ public class JavaWorker {
     }
 
     public TaskResult work(Submission submission) throws IOException {
-        save(submission);
+        this.submission = submission;
 
+        save();
         TaskResult result = compile();
         if (result.getStatus() != OK) {
             clean();
             return result;
         }
 
-        result = run(submission);
+        result = run();
         clean();
         return result;
     }
 
-    private void save(Submission submission) throws IOException {
-        String tmpDirName = "/var/log/justice/code/" + submission.getId();
-
-        tmpDir = new File(tmpDirName);
-        tmpFileName = tmpDirName + "/Main.java";
-
-        Files.createDirectories(Paths.get(tmpDirName));
-        Files.write(Paths.get(tmpFileName), submission.getCode().getBytes());
+    private void save() throws IOException {
+        cwd = baseDir + "/" + submission.getId();
+        // java file must end with `.java`
+        file = cwd + "/" + className + ".java";
+        Files.createDirectories(Paths.get(cwd));
+        Files.write(Paths.get(file), submission.getCode().getBytes());
     }
 
     private TaskResult compile() throws IOException {
-        CommandLine cmd = new CommandLine("javac");
-        cmd.addArgument(tmpFileName);
+        CommandLine cmd = new CommandLine(javac);
+        cmd.addArgument(file);
 
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         DefaultExecutor executor = new DefaultExecutor();
-        executor.setWorkingDirectory(tmpDir);
+        executor.setWorkingDirectory(new File(cwd));
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
-        executor.setWatchdog(new ExecuteWatchdog(10000));
+        executor.setWatchdog(new ExecuteWatchdog(watchdogTimeout));
 
         TaskResult compile = new TaskResult();
         try {
@@ -79,16 +108,16 @@ public class JavaWorker {
         return compile;
     }
 
-    private TaskResult run(Submission submission) throws IOException {
+    private TaskResult run() throws IOException {
         Problem problem = problemRepository.findOne(submission.getProblemId());
 
         TaskResult run = new TaskResult();
 
-        CommandLine cmd = new CommandLine("java");
+        CommandLine cmd = new CommandLine(java);
         cmd.addArgument("-Djava.security.manager");
-        cmd.addArgument("-Djava.security.policy==" + new File("resources/policy").getPath());
+        cmd.addArgument("-Djava.security.policy==" + new File(policyFile).getPath());
         cmd.addArgument("-Xmx" + problem.getMemoryLimit() + "m");
-        cmd.addArgument("Main");
+        cmd.addArgument(className);
 
         List<TestCase> testCases = testCaseRepository.findByProblemId(submission.getProblemId());
         long startTime = System.nanoTime();
@@ -96,15 +125,22 @@ public class JavaWorker {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
             DefaultExecutor executor = new DefaultExecutor();
-            executor.setWorkingDirectory(tmpDir);
+            ExecuteWatchdog watchdog = new ExecuteWatchdog(watchdogTimeout);
+
+            executor.setWorkingDirectory(new File(cwd));
             executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
-            executor.setWatchdog(new ExecuteWatchdog(10000));
+            executor.setWatchdog(watchdog);
 
             try {
-                executor.execute(cmd);
-            } catch (Exception e) {
-                run.setStatus(Submission.STATUS_TLE);
-                run.setError("Time Limit Exceeded");
+                int exitValue = executor.execute(cmd);
+                if (executor.isFailure(exitValue) && watchdog.killedProcess()) {
+                    run.setStatus(Submission.STATUS_TLE);
+                    run.setError("Time Limit Exceeded");
+                    return run;
+                }
+            } catch (final Exception e) {
+                run.setStatus(Submission.STATUS_RE);
+                run.setError(stderr.toString());
                 return run;
             }
 
@@ -117,13 +153,15 @@ public class JavaWorker {
             }
         }
 
+        // nano to milli
         run.setRuntime((System.nanoTime() - startTime) / 1000000);
+        // Byte to MB
         run.setMemory(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed() / (1024 * 1024));
         run.setStatus(Submission.STATUS_AC);
         return run;
     }
 
     private void clean() throws IOException {
-        FileUtils.deleteDirectory(tmpDir);
+        FileUtils.deleteDirectory(new File(cwd));
     }
 }
