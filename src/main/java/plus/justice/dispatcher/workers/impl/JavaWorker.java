@@ -89,6 +89,8 @@ public class JavaWorker {
 
     private TaskResult compile() throws IOException {
         CommandLine cmd = new CommandLine(javac);
+        // force using English
+        cmd.addArgument("-J-Duser.language=en");
         cmd.addArgument(file);
 
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -147,7 +149,7 @@ public class JavaWorker {
             if (!stdout.toString().trim().equals(testCase.getOutput())) {
                 run.setStatus(Submission.STATUS_WA);
                 run.setInput(testCase.getInput());
-                run.setOutput(stdout.toString());
+                run.setOutput(stdout.toString().trim());
                 run.setExpected(testCase.getOutput());
                 return run;
             }
