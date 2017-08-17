@@ -25,7 +25,7 @@ import java.util.List;
 @Component
 @PropertySource("classpath:config.properties")
 public class JavaWorker {
-    @Value("${justice.judger.java.classname}")
+    @Value("${justice.judger.code.tmp.filename}")
     private String className;
 
     @Value("${justice.judger.code.tmp.basedir}")
