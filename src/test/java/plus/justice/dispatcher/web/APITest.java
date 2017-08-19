@@ -18,7 +18,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @RunWith(SpringRunner.class)
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, classes = Application.class)
-public class APISubmissionTest {
+public class APITest {
     @Autowired
     private WebApplicationContext context;
 
@@ -30,7 +30,7 @@ public class APISubmissionTest {
     }
 
     @Test
-    public void test001getSubmissionDetail() throws Exception {
+    public void t001GetSubmissionDetail() throws Exception {
         mockMvc.perform(get("/api/submission?id=1")
                 .accept(MediaType.APPLICATION_JSON_UTF8))
                 .andExpect(status().isOk())

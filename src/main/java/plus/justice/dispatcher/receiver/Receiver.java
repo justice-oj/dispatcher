@@ -4,30 +4,36 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import plus.justice.dispatcher.models.amqp.QueueMessage;
 import plus.justice.dispatcher.models.database.Submission;
 import plus.justice.dispatcher.models.sandbox.TaskResult;
 import plus.justice.dispatcher.repositories.SubmissionRepository;
+import plus.justice.dispatcher.workers.impl.CPPWorker;
+import plus.justice.dispatcher.workers.impl.CWorker;
 import plus.justice.dispatcher.workers.impl.JavaWorker;
 
 import java.io.IOException;
 
 @Component
-@PropertySource("classpath:config.properties")
 public class Receiver {
     private static final Logger logger = LoggerFactory.getLogger(Receiver.class);
     private final SubmissionRepository submissionRepository;
     private final JavaWorker javaWorker;
+    private final CPPWorker cppWorker;
+    private final CWorker cWorker;
 
     @Autowired
     public Receiver(
             SubmissionRepository submissionRepository,
-            JavaWorker javaWorker
+            JavaWorker javaWorker,
+            CPPWorker cppWorker,
+            CWorker cWorker
     ) {
         this.submissionRepository = submissionRepository;
         this.javaWorker = javaWorker;
+        this.cppWorker = cppWorker;
+        this.cWorker = cWorker;
     }
 
     @RabbitListener(queues = "${justice.rabbitmq.queue.name}")
@@ -36,7 +42,18 @@ public class Receiver {
         logger.info("Submission:" + submission.toString());
 
         try {
-            TaskResult taskResult = javaWorker.work(submission);
+            TaskResult taskResult;
+            if (submission.getLanguage().equals(Submission.LANGUAGE_C)) {
+                taskResult = cWorker.work(submission);
+            } else if (submission.getLanguage().equals(Submission.LANGUAGE_CPP)) {
+                taskResult = cppWorker.work(submission);
+            } else if (submission.getLanguage().equals(Submission.LANGUAGE_PERL6)) {
+                taskResult = javaWorker.work(submission);
+            } else if (submission.getLanguage().equals(Submission.LANGUAGE_PYTHON3)) {
+                taskResult = javaWorker.work(submission);
+            } else {
+                taskResult = javaWorker.work(submission);
+            }
             logger.info("Sandbox returns: " + taskResult.toString());
 
             submission.setStatus(taskResult.getStatus());

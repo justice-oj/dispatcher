@@ -23,21 +23,21 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 @Component
-public class JavaWorker {
+public class CWorker {
     @Value("${justice.judger.code.tmp.filename}")
     private String fileName;
 
     @Value("${justice.judger.code.tmp.basedir}")
     private String baseDir;
 
-    @Value("${justice.judger.javac.executable}")
-    private String javac;
+    @Value("${justice.judger.compiler.executable}")
+    private String compiler;
 
-    @Value("${justice.judger.java.executable}")
-    private String java;
+    @Value("${justice.judger.sandbox.executable}")
+    private String sandbox;
 
-    @Value("${justice.judger.java.policy.file}")
-    private String policyFile;
+    @Value("${justice.judger.gcc.executable}")
+    private String gcc;
 
     @Value("${justice.judger.watchdog.timeout}")
     private Integer watchdogTimeout;
@@ -59,7 +59,7 @@ public class JavaWorker {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
-    public JavaWorker(TestCaseRepository testCaseRepository, ProblemRepository problemRepository) {
+    public CWorker(TestCaseRepository testCaseRepository, ProblemRepository problemRepository) {
         this.testCaseRepository = testCaseRepository;
         this.problemRepository = problemRepository;
     }
@@ -83,21 +83,22 @@ public class JavaWorker {
     private void save() throws IOException {
         cwd = baseDir + File.separator + submission.getId();
         Files.createDirectories(Paths.get(cwd));
-        Files.write(Paths.get(cwd + File.separator + fileName + ".java"), submission.getCode().getBytes());
+        Files.write(Paths.get(cwd + File.separator + fileName + ".c"), submission.getCode().getBytes());
     }
 
     private TaskResult compile() throws IOException {
+        CommandLine cmd = new CommandLine(compiler);
+        cmd.addArgument("-compiler=" + gcc);
+        cmd.addArgument("-dir=" + cwd);
+        cmd.addArgument("-file=" + fileName + ".c");
+        logger.info(cmd.toString());
+
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         DefaultExecutor executor = new DefaultExecutor();
         executor.setWorkingDirectory(new File(cwd));
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
         executor.setWatchdog(new ExecuteWatchdog(watchdogTimeout));
-
-        CommandLine cmd = new CommandLine(javac);
-        // force using English for error message
-        cmd.addArgument("-J-Duser.language=en");
-        cmd.addArgument(fileName + ".java");
 
         TaskResult compile = new TaskResult();
         try {
@@ -106,31 +107,30 @@ public class JavaWorker {
         } catch (ExecuteException e) {
             compile.setStatus(Submission.STATUS_CE);
             compile.setError(stderr.toString());
-            logger.warn("\ncompile error:\t" + e.getMessage());
         }
-
         return compile;
     }
 
     private TaskResult run() throws IOException {
         TaskResult run = new TaskResult();
 
-        CommandLine cmd = new CommandLine(java);
-        cmd.addArgument("-Djava.security.manager");
-        cmd.addArgument("-Djava.security.policy==" + new File(policyFile).getPath());
-        cmd.addArgument("-Xmx" + problem.getMemoryLimit() + "m");
-        cmd.addArgument(fileName);
-
         long startTime = System.nanoTime();
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
-            DefaultExecutor executor = new DefaultExecutor();
-            ExecuteWatchdog watchdog = new ExecuteWatchdog(problem.getRuntimeLimit());
 
+            ExecuteWatchdog watchdog = new ExecuteWatchdog(watchdogTimeout);
+
+            DefaultExecutor executor = new DefaultExecutor();
             executor.setWorkingDirectory(new File(cwd));
             executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
             executor.setWatchdog(watchdog);
+
+            CommandLine cmd = new CommandLine(sandbox);
+            cmd.addArgument("-dir=" + cwd);
+            cmd.addArgument("-file=Main");
+            cmd.addArgument("-stdin=" + testCase.getInput());
+            logger.info(cmd.toString());
 
             try {
                 executor.execute(cmd);
@@ -142,7 +142,6 @@ public class JavaWorker {
                     run.setStatus(Submission.STATUS_RE);
                     run.setError(stderr.toString());
                 }
-                logger.warn("\nruntime error:\t" + e.getMessage());
                 return run;
             }
 

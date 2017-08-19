@@ -10,13 +10,11 @@ import org.springframework.amqp.rabbit.listener.RabbitListenerEndpointRegistrar;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.PropertySource;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.messaging.handler.annotation.support.DefaultMessageHandlerMethodFactory;
 
 @EnableRabbit
 @Configuration
-@PropertySource("classpath:config.properties")
 public class RabbitMQConfig implements RabbitListenerConfigurer {
     @Value("${justice.rabbitmq.queue.name}")
     private String queueName;
