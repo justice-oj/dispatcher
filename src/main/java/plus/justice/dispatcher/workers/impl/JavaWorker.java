@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import plus.justice.dispatcher.models.database.Problem;
 import plus.justice.dispatcher.models.database.Submission;
@@ -23,6 +24,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 
 @Component
+@PropertySource("classpath:config-${spring.profiles.active}.properties")
 public class JavaWorker {
     @Value("${justice.judger.code.tmp.filename}")
     private String fileName;

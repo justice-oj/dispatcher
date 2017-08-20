@@ -43,14 +43,14 @@ public class JavaJudgerTest {
 
     @Test
     public void t000AC() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/0.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/0.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_AC);
     }
 
     @Test
     public void t001PlainText() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/1.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/1.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_CE);
         assertThat(taskResult.getError()).contains("class, interface, or enum expected");
@@ -58,7 +58,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t002SyntaxError() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/2.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/2.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_CE);
         assertThat(taskResult.getError()).contains("error: ';' expected");
@@ -66,7 +66,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t003OutOfIndex() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/3.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/3.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
         assertThat(taskResult.getError()).contains("String index out of range").contains("Exception ");
@@ -74,7 +74,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t004NullPointerException() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/4.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/4.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
         assertThat(taskResult.getError()).contains("NullPointerException");
@@ -82,7 +82,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t005ProhibitReadingFile() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/5.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/5.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
         assertThat(taskResult.getError())
@@ -92,7 +92,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t006ProhibitWritingFile() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/6.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/6.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
         assertThat(taskResult.getError())
@@ -102,7 +102,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t007ProhibitAcceptingSocket() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/7.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/7.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
         assertThat(taskResult.getError())
@@ -112,7 +112,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t008ProhibitConnectingSocket() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/8.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/8.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
         assertThat(taskResult.getError())
@@ -122,7 +122,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t009ProhibitCallingCLI() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/9.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/9.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
         assertThat(taskResult.getError())
@@ -132,7 +132,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t010ProhibitGettingEnvParam() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/10.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/10.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
         assertThat(taskResult.getError())
@@ -142,7 +142,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t011CPURuntimeLimitExceeded() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/11.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/11.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_TLE);
         assertThat(taskResult.getError()).contains("Time Limit Exceeded");
@@ -150,7 +150,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t012RuntimeLimitExceeded() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/12.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/12.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_TLE);
         assertThat(taskResult.getError()).contains("Time Limit Exceeded");
@@ -158,7 +158,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t013WA() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/13.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/13.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_WA);
         assertThat(taskResult.getInput()).contains("07:05:45PM");
@@ -168,7 +168,7 @@ public class JavaJudgerTest {
 
     @Test
     public void t014JavaSecurityManagerWhiteList() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/java/14.java");
+        TaskResult taskResult = getTaskResult("classpath:tests/java/14.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_WA);
         assertThat(taskResult.getOutput()).contains("1.8.0_");

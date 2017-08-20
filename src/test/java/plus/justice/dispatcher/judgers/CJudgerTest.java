@@ -42,7 +42,7 @@ public class CJudgerTest {
 
     @Test
     public void t000AC() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/c/0.c");
+        TaskResult taskResult = getTaskResult("classpath:tests/c/0.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_AC);
     }

@@ -4,10 +4,12 @@ import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
+import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
 import plus.justice.dispatcher.models.database.Problem;
 import plus.justice.dispatcher.models.database.Submission;
@@ -23,9 +25,9 @@ import java.io.IOException;
 import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.List;
 
 @Component
+@PropertySource("classpath:config-${spring.profiles.active}.properties")
 public class PythonWorker {
     @Value("${justice.judger.code.tmp.filename}")
     private String fileName;
@@ -33,11 +35,8 @@ public class PythonWorker {
     @Value("${justice.judger.code.tmp.basedir}")
     private String baseDir;
 
-    @Value("${justice.judger.compiler.executable}")
-    private String compiler;
-
-    @Value("${justice.judger.gpp.executable}")
-    private String gpp;
+    @Value("${justice.judger.python.executable}")
+    private String python;
 
     @Value("${justice.judger.watchdog.timeout}")
     private Integer watchdogTimeout;
@@ -45,12 +44,14 @@ public class PythonWorker {
     // current submission
     private Submission submission;
 
+    // related problem
+    private Problem problem;
+
     // current working directory
     private String cwd;
 
     private final TestCaseRepository testCaseRepository;
     private final ProblemRepository problemRepository;
-
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
     @Autowired
@@ -61,6 +62,7 @@ public class PythonWorker {
 
     public TaskResult work(Submission submission) throws IOException {
         this.submission = submission;
+        this.problem = problemRepository.findOne(submission.getProblemId());
 
         save();
         TaskResult result = run();
@@ -80,9 +82,8 @@ public class PythonWorker {
         TaskResult run = new TaskResult();
         CommandLine cmd = new CommandLine(cwd + File.separator + fileName);
 
-        List<TestCase> testCases = testCaseRepository.findByProblemId(submission.getProblemId());
         long startTime = System.nanoTime();
-        for (TestCase testCase : testCases) {
+        for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
             DefaultExecutor executor = new DefaultExecutor();
@@ -123,6 +124,6 @@ public class PythonWorker {
     }
 
     private void clean() throws IOException {
-        //FileUtils.deleteDirectory(new File(cwd));
+        FileUtils.deleteDirectory(new File(cwd));
     }
 }

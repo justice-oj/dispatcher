@@ -42,7 +42,7 @@ public class CppJudgerTest {
 
     @Test
     public void t000AC() throws Exception {
-        TaskResult taskResult = getTaskResult("classpath:tests/cpp/0.cpp");
+        TaskResult taskResult = getTaskResult("classpath:tests/cpp/0.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_AC);
     }
