@@ -5,7 +5,8 @@
 
     <groupId>org.springframework</groupId>
     <artifactId>justice-dispatcher</artifactId>
-    <version>0.1.2</version>
+    <packaging>war</packaging>
+    <version>0.2.2</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
@@ -17,6 +18,11 @@
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-web</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-tomcat</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>

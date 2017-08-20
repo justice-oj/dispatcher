@@ -1,0 +1,19 @@
+import java.net.DatagramPacket;
+import java.net.InetAddress;
+import java.net.MulticastSocket;
+
+public class Main {
+    public static void main(String args[]) throws Exception {
+        MulticastSocket s = new MulticastSocket(44550);
+        s.joinGroup(InetAddress.getByName("224.0.0.1"));
+        byte buf[] = new byte[1024];
+        for (int i = 0; i < 1024; ++i) {
+            buf[i] = 'c';
+        }
+
+        DatagramPacket packet = new DatagramPacket(buf, buf.length);
+        System.out.write(packet.getData(), 0, packet.getLength());
+        s.leaveGroup(InetAddress.getByName("224.0.0.1"));
+        s.close();
+    }
+}

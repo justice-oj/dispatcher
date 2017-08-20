@@ -1,0 +1,12 @@
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+import java.net.InetSocketAddress;
+
+public class Main {
+    public static void main(String args[]) throws Exception {
+        DatagramSocket socket = new DatagramSocket(50505, new InetSocketAddress("localhost", 50505).getAddress());
+        byte[] buf = new byte[1000];
+        DatagramPacket packet = new DatagramPacket(buf, buf.length);
+        socket.send(packet);
+    }
+}

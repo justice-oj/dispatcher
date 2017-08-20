@@ -1,0 +1,11 @@
+import java.net.DatagramPacket;
+import java.net.DatagramSocket;
+
+public class Main {
+    public static void main(String args[]) throws Exception {
+        DatagramSocket socket = new DatagramSocket(50505);
+        byte[] buf = new byte[1000];
+        DatagramPacket packet = new DatagramPacket(buf, buf.length);
+        socket.receive(packet);
+    }
+}

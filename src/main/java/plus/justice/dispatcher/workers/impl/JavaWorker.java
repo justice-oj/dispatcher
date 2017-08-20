@@ -38,9 +38,6 @@ public class JavaWorker {
     @Value("${justice.judger.java.executable}")
     private String java;
 
-    @Value("${justice.judger.java.policy.file}")
-    private String policyFile;
-
     @Value("${justice.judger.watchdog.timeout}")
     private Integer watchdogTimeout;
 
@@ -52,6 +49,9 @@ public class JavaWorker {
 
     // current working directory
     private String cwd;
+
+    // empty policy file
+    private String policyFile;
 
     // tmp taskResult exitCode, 0 stands for OK
     private final int OK = 0;
@@ -86,6 +86,11 @@ public class JavaWorker {
         cwd = baseDir + File.separator + submission.getId();
         Files.createDirectories(Paths.get(cwd));
         Files.write(Paths.get(cwd + File.separator + fileName + ".java"), submission.getCode().getBytes());
+        logger.info("save code: " + cwd + File.separator + fileName + ".java");
+
+        policyFile = cwd + File.separator + "policy";
+        Files.createFile(Paths.get(policyFile));
+        logger.info("create policy file: " + policyFile);
     }
 
     private TaskResult compile() throws IOException {
@@ -121,8 +126,10 @@ public class JavaWorker {
 
         CommandLine cmd = new CommandLine(java);
         cmd.addArgument("-Djava.security.manager");
-        cmd.addArgument("-Djava.security.policy==" + new File(policyFile).getPath());
+        cmd.addArgument("-Djava.security.policy==" + policyFile);
         cmd.addArgument("-Xmx" + problem.getMemoryLimit() + "m");
+        cmd.addArgument("-classpath");
+        cmd.addArgument(cwd);
         cmd.addArgument(fileName);
         logger.info("sandbox cmd: " + cmd.toString());
 
@@ -130,10 +137,9 @@ public class JavaWorker {
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
+
             DefaultExecutor executor = new DefaultExecutor();
             ExecuteWatchdog watchdog = new ExecuteWatchdog(problem.getRuntimeLimit());
-
-            executor.setWorkingDirectory(new File(cwd));
             executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
             executor.setWatchdog(watchdog);
 

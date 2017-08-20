@@ -101,7 +101,7 @@ public class JavaJudgerTest {
     }
 
     @Test
-    public void t007ProhibitAcceptingSocket() throws Exception {
+    public void t007ProhibitTCPServer() throws Exception {
         TaskResult taskResult = getTaskResult("classpath:tests/java/7.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
@@ -111,7 +111,7 @@ public class JavaJudgerTest {
     }
 
     @Test
-    public void t008ProhibitConnectingSocket() throws Exception {
+    public void t008ProhibitTCPClient() throws Exception {
         TaskResult taskResult = getTaskResult("classpath:tests/java/8.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
@@ -167,10 +167,72 @@ public class JavaJudgerTest {
     }
 
     @Test
-    public void t014JavaSecurityManagerWhiteList() throws Exception {
+    public void t014ProhibitGettingSystemProperty() throws Exception {
         TaskResult taskResult = getTaskResult("classpath:tests/java/14.in");
 
-        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_WA);
-        assertThat(taskResult.getOutput()).contains("1.8.0_");
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
+        assertThat(taskResult.getError())
+                .contains("java.security.AccessControlException: access denied")
+                .contains("java.util.PropertyPermission");
+    }
+
+    @Test
+    public void t015ProhibitUDPClient() throws Exception {
+        TaskResult taskResult = getTaskResult("classpath:tests/java/15.in");
+
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
+        assertThat(taskResult.getError())
+                .contains("java.security.AccessControlException: access denied")
+                .contains("java.net.SocketPermission");
+    }
+
+    @Test
+    public void t016ProhibitUDPServer() throws Exception {
+        TaskResult taskResult = getTaskResult("classpath:tests/java/16.in");
+
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
+        assertThat(taskResult.getError())
+                .contains("java.security.AccessControlException: access denied")
+                .contains("java.net.SocketPermission");
+    }
+
+    @Test
+    public void t017ProhibitMulticastClient() throws Exception {
+        TaskResult taskResult = getTaskResult("classpath:tests/java/17.in");
+
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
+        assertThat(taskResult.getError())
+                .contains("java.security.AccessControlException: access denied")
+                .contains("java.net.SocketPermission");
+    }
+
+    @Test
+    public void t018ProhibitMulticastServer() throws Exception {
+        TaskResult taskResult = getTaskResult("classpath:tests/java/18.in");
+
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
+        assertThat(taskResult.getError())
+                .contains("java.security.AccessControlException: access denied")
+                .contains("java.net.SocketPermission");
+    }
+
+    @Test
+    public void t019ProhibitSettingProperty() throws Exception {
+        TaskResult taskResult = getTaskResult("classpath:tests/java/19.in");
+
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
+        assertThat(taskResult.getError())
+                .contains("java.security.AccessControlException: access denied")
+                .contains("java.util.PropertyPermission");
+    }
+
+    @Test
+    public void t020ProhibitSettingProperty() throws Exception {
+        TaskResult taskResult = getTaskResult("classpath:tests/java/20.in");
+
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
+        assertThat(taskResult.getError())
+                .contains("java.security.AccessControlException: access denied")
+                .contains("java.lang.RuntimePermission");
     }
 }

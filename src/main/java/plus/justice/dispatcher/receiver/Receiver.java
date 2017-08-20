@@ -17,7 +17,7 @@ import java.io.IOException;
 
 @Component
 public class Receiver {
-    private static final Logger logger = LoggerFactory.getLogger(Receiver.class);
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final SubmissionRepository submissionRepository;
     private final JavaWorker javaWorker;
     private final CPPWorker cppWorker;
