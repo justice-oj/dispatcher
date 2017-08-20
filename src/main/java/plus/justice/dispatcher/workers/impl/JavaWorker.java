@@ -100,11 +100,13 @@ public class JavaWorker {
         // force using English for error message
         cmd.addArgument("-J-Duser.language=en");
         cmd.addArgument(fileName + ".java");
+        logger.info("compiler cmd: " + cmd.toString());
 
         TaskResult compile = new TaskResult();
         try {
             executor.execute(cmd);
             compile.setStatus(OK);
+            logger.info("compiler OK");
         } catch (ExecuteException e) {
             compile.setStatus(Submission.STATUS_CE);
             compile.setError(stderr.toString());
@@ -122,6 +124,7 @@ public class JavaWorker {
         cmd.addArgument("-Djava.security.policy==" + new File(policyFile).getPath());
         cmd.addArgument("-Xmx" + problem.getMemoryLimit() + "m");
         cmd.addArgument(fileName);
+        logger.info("sandbox cmd: " + cmd.toString());
 
         long startTime = System.nanoTime();
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
@@ -144,7 +147,7 @@ public class JavaWorker {
                     run.setStatus(Submission.STATUS_RE);
                     run.setError(stderr.toString());
                 }
-                logger.warn("\nruntime error:\t" + e.getMessage());
+                logger.warn("\nruntime error:\t" + e.toString());
                 return run;
             }
 
