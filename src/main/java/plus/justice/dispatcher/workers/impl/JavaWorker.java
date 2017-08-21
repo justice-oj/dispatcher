@@ -97,13 +97,13 @@ public class JavaWorker {
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         DefaultExecutor executor = new DefaultExecutor();
-        executor.setWorkingDirectory(new File(cwd));
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
         executor.setWatchdog(new ExecuteWatchdog(watchdogTimeout));
 
         CommandLine cmd = new CommandLine(javac);
-        // force using English for error message
-        cmd.addArgument("-J-Duser.language=en");
+        cmd.addArgument("-J-Duser.language=en");  // force using English
+        cmd.addArgument("-classpath");
+        cmd.addArgument(cwd);
         cmd.addArgument(fileName + ".java");
         logger.info("compiler cmd: " + cmd.toString());
 
