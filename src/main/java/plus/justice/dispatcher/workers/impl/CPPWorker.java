@@ -120,9 +120,9 @@ public class CPPWorker {
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
-            DefaultExecutor executor = new DefaultExecutor();
             ExecuteWatchdog watchdog = new ExecuteWatchdog(watchdogTimeout);
 
+            DefaultExecutor executor = new DefaultExecutor();
             executor.setWorkingDirectory(new File(cwd));
             executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
             executor.setWatchdog(watchdog);

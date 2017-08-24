@@ -97,6 +97,7 @@ public class JavaWorker {
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
 
         DefaultExecutor executor = new DefaultExecutor();
+        executor.setWorkingDirectory(new File(cwd));
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
         executor.setWatchdog(new ExecuteWatchdog(watchdogTimeout));
 
@@ -137,9 +138,10 @@ public class JavaWorker {
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
+            ExecuteWatchdog watchdog = new ExecuteWatchdog(problem.getRuntimeLimit());
 
             DefaultExecutor executor = new DefaultExecutor();
-            ExecuteWatchdog watchdog = new ExecuteWatchdog(problem.getRuntimeLimit());
+            executor.setWorkingDirectory(new File(cwd));
             executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
             executor.setWatchdog(watchdog);
 
