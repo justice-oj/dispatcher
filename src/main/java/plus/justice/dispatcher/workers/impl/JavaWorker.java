@@ -174,7 +174,11 @@ public class JavaWorker {
         return run;
     }
 
-    private void clean() throws IOException {
-        FileUtils.deleteDirectory(new File(cwd));
+    private void clean() {
+        try {
+            FileUtils.deleteDirectory(new File(cwd));
+        } catch (IOException e) {
+            logger.warn("remove dir: " + cwd + " failed");
+        }
     }
 }
