@@ -41,6 +41,9 @@ public class CWorker {
     @Value("${justice.judger.gcc.executable}")
     private String gcc;
 
+    @Value("${justice.judger.output.maxlength}")
+    private Integer outputMaxLength;
+
     @Value("${justice.judger.watchdog.timeout}")
     private Integer watchdogTimeout;
 
@@ -147,10 +150,11 @@ public class CWorker {
                 return run;
             }
 
-            if (!stdout.toString().trim().equals(testCase.getOutput())) {
+            String o = stdout.toString().trim();
+            if (!o.equals(testCase.getOutput())) {
                 run.setStatus(Submission.STATUS_WA);
                 run.setInput(testCase.getInput());
-                run.setOutput(stdout.toString().trim());
+                run.setOutput(o.length() > outputMaxLength ? o.substring(0, outputMaxLength) + "..." : o);
                 run.setExpected(testCase.getOutput());
                 return run;
             }

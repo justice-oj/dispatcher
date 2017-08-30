@@ -38,6 +38,9 @@ public class JavaWorker {
     @Value("${justice.judger.java.executable}")
     private String java;
 
+    @Value("${justice.judger.output.maxlength}")
+    private Integer outputMaxLength;
+
     @Value("${justice.judger.watchdog.timeout}")
     private Integer watchdogTimeout;
 
@@ -85,38 +88,50 @@ public class JavaWorker {
     private void save() throws IOException {
         cwd = baseDir + File.separator + submission.getId();
         Files.createDirectories(Paths.get(cwd));
-        Files.write(Paths.get(cwd + File.separator + fileName + ".java"), submission.getCode().getBytes());
-        logger.info("save code: " + cwd + File.separator + fileName + ".java");
 
+        // save code
+        Files.write(Paths.get(cwd + File.separator + fileName + ".java"), submission.getCode().getBytes());
+        logger.info("Save code:\t" + cwd + File.separator + fileName + ".java");
+
+        // save empty policy file
         policyFile = cwd + File.separator + "policy";
         Files.createFile(Paths.get(policyFile));
-        logger.info("create policy file: " + policyFile);
+
+        logger.info("Create policy file:\t" + policyFile);
     }
 
     private TaskResult compile() throws IOException {
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
+        ExecuteWatchdog watchdog = new ExecuteWatchdog(watchdogTimeout);
 
         DefaultExecutor executor = new DefaultExecutor();
         executor.setWorkingDirectory(new File(cwd));
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
-        executor.setWatchdog(new ExecuteWatchdog(watchdogTimeout));
+        executor.setWatchdog(watchdog);
 
         CommandLine cmd = new CommandLine(javac);
         cmd.addArgument("-J-Duser.language=en");  // force using English
         cmd.addArgument("-classpath");
         cmd.addArgument(cwd);
         cmd.addArgument(fileName + ".java");
-        logger.info("compiler cmd: " + cmd.toString());
+        logger.info("Compiler cmd:\t" + cmd.toString());
 
         TaskResult compile = new TaskResult();
         try {
             executor.execute(cmd);
             compile.setStatus(OK);
-            logger.info("compiler OK");
-        } catch (ExecuteException e) {
-            compile.setStatus(Submission.STATUS_CE);
-            compile.setError(stderr.toString());
-            logger.warn("\ncompile error:\t" + e.getMessage());
+            logger.info("Compile OK");
+        } catch (final Exception e) {
+            if (watchdog.killedProcess()) {
+                compile.setStatus(Submission.STATUS_CE);
+                compile.setError("Compile Time Exceeded");
+                logger.warn("Compile Time Exceeded:\t" + e.getMessage());
+            } else {
+                compile.setStatus(Submission.STATUS_CE);
+                compile.setError("Compile error");
+                logger.warn("Compile error:\t" + e.getMessage());
+            }
+            logger.warn(stderr.toString());
         }
 
         return compile;
@@ -132,7 +147,7 @@ public class JavaWorker {
         cmd.addArgument("-classpath");
         cmd.addArgument(cwd);
         cmd.addArgument(fileName);
-        logger.info("sandbox cmd: " + cmd.toString());
+        logger.info("Sandbox cmd:\t" + cmd.toString());
 
         long startTime = System.nanoTime();
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
@@ -155,19 +170,21 @@ public class JavaWorker {
                     run.setStatus(Submission.STATUS_RE);
                     run.setError(stderr.toString());
                 }
-                logger.warn("\nruntime error:\t" + e.toString());
+                logger.warn("Runtime error:\t" + e.toString());
                 return run;
             }
 
-            if (!stdout.toString().trim().equals(testCase.getOutput())) {
+            String o = stdout.toString().trim();
+            if (!o.equals(testCase.getOutput())) {
                 run.setStatus(Submission.STATUS_WA);
                 run.setInput(testCase.getInput());
-                run.setOutput(stdout.toString().trim());
+                run.setOutput(o.length() > outputMaxLength ? o.substring(0, outputMaxLength) + "..." : o);
                 run.setExpected(testCase.getOutput());
                 return run;
             }
         }
 
+        // TODO 如何更准确地收集 Runtime 和 Memory？
         run.setRuntime((System.nanoTime() - startTime) / 1000000);
         run.setMemory(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed() / (1024 * 1024));
         run.setStatus(Submission.STATUS_AC);
@@ -178,7 +195,7 @@ public class JavaWorker {
         try {
             FileUtils.deleteDirectory(new File(cwd));
         } catch (IOException e) {
-            logger.warn("remove dir: " + cwd + " failed");
+            logger.warn("Remove dir:\t" + cwd + " failed");
         }
     }
 }
