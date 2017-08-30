@@ -235,4 +235,13 @@ public class JavaJudgerTest {
                 .contains("java.security.AccessControlException: access denied")
                 .contains("java.lang.RuntimePermission");
     }
+
+    @Test
+    public void t021OutputTooLong() throws Exception {
+        TaskResult taskResult = getTaskResult("classpath:tests/java/21.in");
+
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_WA);
+        assertThat(taskResult.getOutput()).contains("1111");
+        assertThat(taskResult.getOutput()).contains("...");
+    }
 }
