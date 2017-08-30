@@ -53,7 +53,7 @@ public class JavaJudgerTest {
         TaskResult taskResult = getTaskResult("classpath:tests/java/1.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_CE);
-        assertThat(taskResult.getError()).contains("class, interface, or enum expected");
+        assertThat(taskResult.getError()).contains("Compile error");
     }
 
     @Test
@@ -61,7 +61,7 @@ public class JavaJudgerTest {
         TaskResult taskResult = getTaskResult("classpath:tests/java/2.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_CE);
-        assertThat(taskResult.getError()).contains("error: ';' expected");
+        assertThat(taskResult.getError()).contains("Compile error");
     }
 
     @Test
@@ -243,5 +243,13 @@ public class JavaJudgerTest {
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_WA);
         assertThat(taskResult.getOutput()).contains("1111");
         assertThat(taskResult.getOutput()).contains("...");
+    }
+
+    @Test
+    public void t022CompileTimeExceeded() throws Exception {
+        TaskResult taskResult = getTaskResult("classpath:tests/java/22.in");
+
+        assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_CE);
+        assertThat(taskResult.getError()).contains("Compile Time Exceeded");
     }
 }
