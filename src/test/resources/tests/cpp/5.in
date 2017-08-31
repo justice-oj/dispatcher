@@ -1,8 +1,5 @@
-#include <stdio.h>
-#include <sys/types.h>
-
-int main() {
-    while(1)
-       fork();
+#include <cstdlib>
+int main(int argc, char **argv){
+    while (1) system(argv[0]);
     return 0;
 }

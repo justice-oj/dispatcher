@@ -32,7 +32,7 @@ public class CWorker {
     @Value("${justice.judger.code.tmp.basedir}")
     private String baseDir;
 
-    @Value("${justice.judger.compiler.executable}")
+    @Value("${justice.judger.ccompiler.executable}")
     private String compiler;
 
     @Value("${justice.judger.sandbox.executable}")
@@ -93,17 +93,15 @@ public class CWorker {
 
     private TaskResult compile() throws IOException {
         CommandLine cmd = new CommandLine(compiler);
+        cmd.addArgument("-basedir=" + cwd);
         cmd.addArgument("-compiler=" + gcc);
-        cmd.addArgument("-dir=" + cwd);
-        cmd.addArgument("-file=" + fileName + ".c");
+        cmd.addArgument("-filename=" + fileName + ".c");
+        cmd.addArgument("-timeout=" + watchdogTimeout);
         logger.info(cmd.toString());
 
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
-
         DefaultExecutor executor = new DefaultExecutor();
-        executor.setWorkingDirectory(new File(cwd));
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
-        executor.setWatchdog(new ExecuteWatchdog(watchdogTimeout));
 
         TaskResult compile = new TaskResult();
         try {
@@ -111,7 +109,8 @@ public class CWorker {
             compile.setStatus(OK);
         } catch (ExecuteException e) {
             compile.setStatus(Submission.STATUS_CE);
-            compile.setError(stderr.toString());
+            compile.setError("Compile error");
+            logger.warn(stderr.toString());
         }
         return compile;
     }
@@ -166,7 +165,11 @@ public class CWorker {
         return run;
     }
 
-    private void clean() throws IOException {
-        FileUtils.deleteDirectory(new File(cwd));
+    private void clean() {
+        try {
+            FileUtils.deleteDirectory(new File(cwd));
+        } catch (IOException e) {
+            logger.warn("Remove dir:\t" + cwd + " failed");
+        }
     }
 }
