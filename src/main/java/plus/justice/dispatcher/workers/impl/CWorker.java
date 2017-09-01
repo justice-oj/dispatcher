@@ -1,6 +1,9 @@
 package plus.justice.dispatcher.workers.impl;
 
-import org.apache.commons.exec.*;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -104,13 +107,14 @@ public class CWorker {
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
 
         TaskResult compile = new TaskResult();
-        try {
-            executor.execute(cmd);
-            compile.setStatus(OK);
-        } catch (ExecuteException e) {
+        executor.execute(cmd);
+
+        if (stderr.toString().length() > 0) {
             compile.setStatus(Submission.STATUS_CE);
             compile.setError("Compile error");
             logger.warn(stderr.toString());
+        } else {
+            compile.setStatus(OK);
         }
         return compile;
     }
