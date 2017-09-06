@@ -1,8 +1,8 @@
 package plus.justice.dispatcher.workers.impl;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
-import org.apache.commons.exec.ExecuteWatchdog;
 import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
@@ -18,11 +18,9 @@ import plus.justice.dispatcher.models.sandbox.TaskResult;
 import plus.justice.dispatcher.repositories.ProblemRepository;
 import plus.justice.dispatcher.repositories.TestCaseRepository;
 
-import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
-import java.lang.management.ManagementFactory;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
@@ -38,8 +36,8 @@ public class CWorker {
     @Value("${justice.judger.ccompiler.executable}")
     private String compiler;
 
-    @Value("${justice.judger.sandbox.executable}")
-    private String sandbox;
+    @Value("${justice.judger.ccontainer.executable}")
+    private String container;
 
     @Value("${justice.judger.gcc.executable}")
     private String gcc;
@@ -121,50 +119,42 @@ public class CWorker {
 
     private TaskResult run() throws IOException {
         TaskResult run = new TaskResult();
+        Long runtime = 0L, memory = 0L, counter = 0L;
 
-        long startTime = System.nanoTime();
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
-            ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
-            ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
-
-            ExecuteWatchdog watchdog = new ExecuteWatchdog(watchdogTimeout);
-
+            ByteArrayOutputStream stdout = new ByteArrayOutputStream();
             DefaultExecutor executor = new DefaultExecutor();
-            executor.setWorkingDirectory(new File(cwd));
-            executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
-            executor.setWatchdog(watchdog);
 
-            CommandLine cmd = new CommandLine(sandbox);
-            cmd.addArgument("-dir=" + cwd);
-            cmd.addArgument("-file=Main");
-            cmd.addArgument("-stdin=" + testCase.getInput());
+            executor.setWorkingDirectory(new File(cwd));
+            executor.setStreamHandler(new PumpStreamHandler(stdout, null, null));
+
+            CommandLine cmd = new CommandLine(container);
+            cmd.addArgument("-basedir=" + cwd);
+            cmd.addArgument("-input=" + testCase.getInput());
+            cmd.addArgument("-expected=" + testCase.getOutput());
+            cmd.addArgument("-timeout=" + problem.getRuntimeLimit());
             logger.info(cmd.toString());
 
             try {
                 executor.execute(cmd);
             } catch (final Exception e) {
-                if (watchdog.killedProcess()) {
-                    run.setStatus(Submission.STATUS_TLE);
-                    run.setError("Time Limit Exceeded");
-                } else {
-                    run.setStatus(Submission.STATUS_RE);
-                    run.setError(stderr.toString());
-                }
+                run.setStatus(Submission.STATUS_RE);
+                run.setError(e.getMessage());
                 return run;
             }
 
-            String o = stdout.toString().trim();
-            if (!o.equals(testCase.getOutput())) {
-                run.setStatus(Submission.STATUS_WA);
-                run.setInput(testCase.getInput());
-                run.setOutput(o.length() > outputMaxLength ? o.substring(0, outputMaxLength) + "..." : o);
-                run.setExpected(testCase.getOutput());
-                return run;
-            }
+            ObjectMapper mapper = new ObjectMapper();
+            TaskResult taskResult = mapper.readValue(stdout.toString(), TaskResult.class);
+
+            if (taskResult.getStatus() != Submission.STATUS_AC) return taskResult;
+
+            runtime += taskResult.getRuntime();
+            memory += taskResult.getMemory();
+            counter++;
         }
 
-        run.setRuntime((System.nanoTime() - startTime) / 1000000);
-        run.setMemory(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed() / (1024 * 1024));
+        run.setRuntime(runtime / counter);
+        run.setMemory(memory / counter);
         run.setStatus(Submission.STATUS_AC);
         return run;
     }
