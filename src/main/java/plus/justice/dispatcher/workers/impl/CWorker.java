@@ -103,10 +103,9 @@ public class CWorker {
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         DefaultExecutor executor = new DefaultExecutor();
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
-
-        TaskResult compile = new TaskResult();
         executor.execute(cmd);
 
+        TaskResult compile = new TaskResult();
         if (stderr.toString().length() > 0) {
             compile.setStatus(Submission.STATUS_CE);
             compile.setError("Compile error");
@@ -124,7 +123,6 @@ public class CWorker {
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
             ByteArrayOutputStream stdout = new ByteArrayOutputStream();
             DefaultExecutor executor = new DefaultExecutor();
-
             executor.setWorkingDirectory(new File(cwd));
             executor.setStreamHandler(new PumpStreamHandler(stdout, null, null));
 
