@@ -1,6 +1,9 @@
 package plus.justice.dispatcher.workers.impl;
 
-import org.apache.commons.exec.*;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.apache.commons.io.FileUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -149,7 +152,7 @@ public class JavaWorker {
         cmd.addArgument(fileName);
         logger.info("Sandbox cmd:\t" + cmd.toString());
 
-        long startTime = System.nanoTime();
+        Long runtime = 0L, counter = 0L;
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
@@ -160,6 +163,7 @@ public class JavaWorker {
             executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
             executor.setWatchdog(watchdog);
 
+            Long startTime = System.nanoTime();
             try {
                 executor.execute(cmd);
             } catch (final Exception e) {
@@ -173,6 +177,7 @@ public class JavaWorker {
                 logger.warn("Runtime error:\t" + e.toString());
                 return run;
             }
+            runtime += System.nanoTime() - startTime;
 
             String o = stdout.toString().trim();
             if (!o.equals(testCase.getOutput())) {
@@ -182,10 +187,10 @@ public class JavaWorker {
                 run.setExpected(testCase.getOutput());
                 return run;
             }
+            counter++;
         }
 
-        // TODO 如何更准确地收集 Runtime 和 Memory？
-        run.setRuntime((System.nanoTime() - startTime) / 1000000);
+        run.setRuntime(runtime / (1000000 * counter));
         run.setMemory(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed() / (1024 * 1024));
         run.setStatus(Submission.STATUS_AC);
         return run;

@@ -145,6 +145,12 @@ public class CWorker {
             TaskResult taskResult = mapper.readValue(stdout.toString(), TaskResult.class);
 
             if (taskResult.getStatus() != Submission.STATUS_AC) return taskResult;
+            if (taskResult.getMemory() > problem.getMemoryLimit()) {
+                logger.warn("MLE: " + taskResult.getMemory() + " > " + problem.getMemoryLimit());
+                run.setStatus(Submission.STATUS_MLE);
+                run.setError("Memory Limit Exceeded");
+                return run;
+            }
 
             runtime += taskResult.getRuntime();
             memory += taskResult.getMemory();

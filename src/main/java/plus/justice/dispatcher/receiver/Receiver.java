@@ -47,12 +47,10 @@ public class Receiver {
                 taskResult = cWorker.work(submission);
             } else if (submission.getLanguage().equals(Submission.LANGUAGE_CPP)) {
                 taskResult = cppWorker.work(submission);
-            } else if (submission.getLanguage().equals(Submission.LANGUAGE_PERL6)) {
-                taskResult = javaWorker.work(submission);
-            } else if (submission.getLanguage().equals(Submission.LANGUAGE_PYTHON3)) {
+            } else if (submission.getLanguage().equals(Submission.LANGUAGE_JAVA)) {
                 taskResult = javaWorker.work(submission);
             } else {
-                taskResult = javaWorker.work(submission);
+                throw new IllegalArgumentException("Language not supported yet");
             }
             logger.info("Sandbox returns: " + taskResult.toString());
 
