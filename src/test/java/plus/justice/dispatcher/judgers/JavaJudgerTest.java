@@ -227,7 +227,7 @@ public class JavaJudgerTest {
     }
 
     @Test
-    public void t020ProhibitSettingProperty() throws Exception {
+    public void t020ProhibitOverridingSecurityManager() throws Exception {
         TaskResult taskResult = getTaskResult("classpath:tests/java/20.in");
 
         assertThat(taskResult.getStatus()).isEqualTo(Submission.STATUS_RE);
