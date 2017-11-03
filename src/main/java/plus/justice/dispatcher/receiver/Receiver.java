@@ -9,67 +9,61 @@ import plus.justice.dispatcher.models.amqp.QueueMessage;
 import plus.justice.dispatcher.models.database.Submission;
 import plus.justice.dispatcher.models.sandbox.TaskResult;
 import plus.justice.dispatcher.repositories.SubmissionRepository;
-import plus.justice.dispatcher.workers.impl.CPPWorker;
-import plus.justice.dispatcher.workers.impl.CWorker;
+import plus.justice.dispatcher.workers.impl.CLikeWorker;
 import plus.justice.dispatcher.workers.impl.JavaWorker;
-
-import java.io.IOException;
 
 @Component
 public class Receiver {
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final SubmissionRepository submissionRepository;
     private final JavaWorker javaWorker;
-    private final CPPWorker cppWorker;
-    private final CWorker cWorker;
+    private final CLikeWorker cLikeWorker;
 
     @Autowired
     public Receiver(
             SubmissionRepository submissionRepository,
             JavaWorker javaWorker,
-            CPPWorker cppWorker,
-            CWorker cWorker
+            CLikeWorker cLikeWorker
     ) {
         this.submissionRepository = submissionRepository;
         this.javaWorker = javaWorker;
-        this.cppWorker = cppWorker;
-        this.cWorker = cWorker;
+        this.cLikeWorker = cLikeWorker;
     }
 
     @RabbitListener(queues = "${justice.rabbitmq.queue.name}")
-    public void handleMessage(QueueMessage message) {
+    public void handleMessage(QueueMessage message) throws Exception {
         Submission submission = submissionRepository.findOne(message.getId());
         logger.info("Submission:" + submission.toString());
 
-        try {
-            TaskResult taskResult;
-            if (submission.getLanguage().equals(Submission.LANGUAGE_C)) {
-                taskResult = cWorker.work(submission);
-            } else if (submission.getLanguage().equals(Submission.LANGUAGE_CPP)) {
-                taskResult = cppWorker.work(submission);
-            } else if (submission.getLanguage().equals(Submission.LANGUAGE_PERL6)) {
-                taskResult = javaWorker.work(submission);
-            } else if (submission.getLanguage().equals(Submission.LANGUAGE_PYTHON3)) {
-                taskResult = javaWorker.work(submission);
-            } else {
-                taskResult = javaWorker.work(submission);
-            }
-            logger.info("Sandbox returns: " + taskResult.toString());
-
-            submission.setStatus(taskResult.getStatus());
-            if (taskResult.getStatus() == Submission.STATUS_AC) {
-                submission.setRuntime(taskResult.getRuntime());
-                submission.setMemory(taskResult.getMemory());
-            } else if (taskResult.getStatus() == Submission.STATUS_WA) {
-                submission.setInput(taskResult.getInput());
-                submission.setOutput(taskResult.getOutput());
-                submission.setExpected(taskResult.getExpected());
-            } else {
-                submission.setError(taskResult.getError());
-            }
-            submissionRepository.save(submission);
-        } catch (IOException e) {
-            logger.error(e.toString());
+        TaskResult taskResult;
+        if (submission.getLanguage().equals(Submission.LANGUAGE_C)) {
+            cLikeWorker.setSuffix(".c");
+            cLikeWorker.setStd("gnu11");
+            cLikeWorker.setRealCompiler("/usr/bin/gcc");
+            taskResult = cLikeWorker.work(submission);
+        } else if (submission.getLanguage().equals(Submission.LANGUAGE_CPP)) {
+            cLikeWorker.setSuffix(".cpp");
+            cLikeWorker.setStd("gnu++14");
+            cLikeWorker.setRealCompiler("/usr/bin/g++");
+            taskResult = cLikeWorker.work(submission);
+        } else if (submission.getLanguage().equals(Submission.LANGUAGE_JAVA)) {
+            taskResult = javaWorker.work(submission);
+        } else {
+            throw new Exception("Language not supported!");
         }
+        logger.info("Sandbox returns: " + taskResult.toString());
+
+        submission.setStatus(taskResult.getStatus());
+        if (taskResult.getStatus() == Submission.STATUS_AC) {
+            submission.setRuntime(taskResult.getRuntime());
+            submission.setMemory(taskResult.getMemory());
+        } else if (taskResult.getStatus() == Submission.STATUS_WA) {
+            submission.setInput(taskResult.getInput());
+            submission.setOutput(taskResult.getOutput());
+            submission.setExpected(taskResult.getExpected());
+        } else {
+            submission.setError(taskResult.getError());
+        }
+        submissionRepository.save(submission);
     }
 }

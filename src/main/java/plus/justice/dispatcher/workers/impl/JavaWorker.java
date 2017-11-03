@@ -1,19 +1,19 @@
 package plus.justice.dispatcher.workers.impl;
 
-import org.apache.commons.exec.*;
-import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.exec.CommandLine;
+import org.apache.commons.exec.DefaultExecutor;
+import org.apache.commons.exec.ExecuteWatchdog;
+import org.apache.commons.exec.PumpStreamHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
-import plus.justice.dispatcher.models.database.Problem;
 import plus.justice.dispatcher.models.database.Submission;
 import plus.justice.dispatcher.models.database.TestCase;
 import plus.justice.dispatcher.models.sandbox.TaskResult;
 import plus.justice.dispatcher.repositories.ProblemRepository;
 import plus.justice.dispatcher.repositories.TestCaseRepository;
+import plus.justice.dispatcher.workers.WorkerAbstract;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -25,7 +25,7 @@ import java.nio.file.Paths;
 
 @Component
 @PropertySource("classpath:config-${spring.profiles.active}.properties")
-public class JavaWorker {
+public class JavaWorker extends WorkerAbstract {
     @Value("${justice.judger.code.tmp.filename}")
     private String fileName;
 
@@ -44,48 +44,15 @@ public class JavaWorker {
     @Value("${justice.judger.watchdog.timeout}")
     private Integer watchdogTimeout;
 
-    // current submission
-    private Submission submission;
-
-    // related problem
-    private Problem problem;
-
-    // current working directory
-    private String cwd;
-
     // empty policy file
     private String policyFile;
 
-    // tmp taskResult exitCode, 0 stands for OK
-    private final int OK = 0;
-
-    private final TestCaseRepository testCaseRepository;
-    private final ProblemRepository problemRepository;
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
-
     @Autowired
     public JavaWorker(TestCaseRepository testCaseRepository, ProblemRepository problemRepository) {
-        this.testCaseRepository = testCaseRepository;
-        this.problemRepository = problemRepository;
+        super(testCaseRepository, problemRepository);
     }
 
-    public TaskResult work(Submission submission) throws IOException {
-        this.submission = submission;
-        this.problem = problemRepository.findOne(submission.getProblemId());
-
-        save();
-        TaskResult result = compile();
-        if (result.getStatus() != OK) {
-            clean();
-            return result;
-        }
-
-        result = run();
-        clean();
-        return result;
-    }
-
-    private void save() throws IOException {
+    public void save() throws IOException {
         cwd = baseDir + File.separator + submission.getId();
         Files.createDirectories(Paths.get(cwd));
 
@@ -100,7 +67,7 @@ public class JavaWorker {
         logger.info("Create policy file:\t" + policyFile);
     }
 
-    private TaskResult compile() throws IOException {
+    public TaskResult compile() throws IOException {
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         ExecuteWatchdog watchdog = new ExecuteWatchdog(watchdogTimeout);
 
@@ -137,7 +104,7 @@ public class JavaWorker {
         return compile;
     }
 
-    private TaskResult run() throws IOException {
+    public TaskResult run() throws IOException {
         TaskResult run = new TaskResult();
 
         CommandLine cmd = new CommandLine(java);
@@ -149,7 +116,7 @@ public class JavaWorker {
         cmd.addArgument(fileName);
         logger.info("Sandbox cmd:\t" + cmd.toString());
 
-        long startTime = System.nanoTime();
+        long cost = 0;
         for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
             ByteArrayInputStream stdin = new ByteArrayInputStream(testCase.getInput().getBytes());
             ByteArrayOutputStream stdout = new ByteArrayOutputStream(), stderr = new ByteArrayOutputStream();
@@ -160,6 +127,7 @@ public class JavaWorker {
             executor.setStreamHandler(new PumpStreamHandler(stdout, stderr, stdin));
             executor.setWatchdog(watchdog);
 
+            long startTime = System.nanoTime();
             try {
                 executor.execute(cmd);
             } catch (final Exception e) {
@@ -173,6 +141,7 @@ public class JavaWorker {
                 logger.warn("Runtime error:\t" + e.toString());
                 return run;
             }
+            cost += System.nanoTime() - startTime;
 
             String o = stdout.toString().trim();
             if (!o.equals(testCase.getOutput())) {
@@ -184,18 +153,9 @@ public class JavaWorker {
             }
         }
 
-        // TODO 如何更准确地收集 Runtime 和 Memory？
-        run.setRuntime((System.nanoTime() - startTime) / 1000000);
+        run.setRuntime(cost / 1000000);
         run.setMemory(ManagementFactory.getMemoryMXBean().getHeapMemoryUsage().getUsed() / (1024 * 1024));
         run.setStatus(Submission.STATUS_AC);
         return run;
-    }
-
-    private void clean() {
-        try {
-            FileUtils.deleteDirectory(new File(cwd));
-        } catch (IOException e) {
-            logger.warn("Remove dir:\t" + cwd + " failed");
-        }
     }
 }

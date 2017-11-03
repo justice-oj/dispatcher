@@ -4,19 +4,16 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
-import org.apache.commons.io.FileUtils;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Component;
-import plus.justice.dispatcher.models.database.Problem;
 import plus.justice.dispatcher.models.database.Submission;
 import plus.justice.dispatcher.models.database.TestCase;
 import plus.justice.dispatcher.models.sandbox.TaskResult;
 import plus.justice.dispatcher.repositories.ProblemRepository;
 import plus.justice.dispatcher.repositories.TestCaseRepository;
+import plus.justice.dispatcher.workers.WorkerAbstract;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -26,21 +23,18 @@ import java.nio.file.Paths;
 
 @Component
 @PropertySource("classpath:config-${spring.profiles.active}.properties")
-public class CWorker {
+public class CLikeWorker extends WorkerAbstract {
     @Value("${justice.judger.code.tmp.filename}")
     private String fileName;
 
     @Value("${justice.judger.code.tmp.basedir}")
     private String baseDir;
 
-    @Value("${justice.judger.ccompiler.executable}")
+    @Value("${justice.judger.clike.compiler.executable}")
     private String compiler;
 
-    @Value("${justice.judger.ccontainer.executable}")
+    @Value("${justice.judger.clike.container.executable}")
     private String container;
-
-    @Value("${justice.judger.gcc.executable}")
-    private String gcc;
 
     @Value("${justice.judger.output.maxlength}")
     private Integer outputMaxLength;
@@ -48,56 +42,52 @@ public class CWorker {
     @Value("${justice.judger.watchdog.timeout}")
     private Integer watchdogTimeout;
 
-    // current submission
-    private Submission submission;
+    private String realCompiler;
+    private String suffix;
+    private String std;
 
-    // related problem
-    private Problem problem;
+    private String getRealCompiler() {
+        return realCompiler;
+    }
 
-    // current working directory
-    private String cwd;
+    public void setRealCompiler(String realCompiler) {
+        this.realCompiler = realCompiler;
+    }
 
-    // tmp taskResult exitCode, 0 stands for OK
-    private final int OK = 0;
+    private String getSuffix() {
+        return suffix;
+    }
 
-    private final TestCaseRepository testCaseRepository;
-    private final ProblemRepository problemRepository;
-    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    public void setSuffix(String suffix) {
+        this.suffix = suffix;
+    }
+
+    private String getStd() {
+        return std;
+    }
+
+    public void setStd(String std) {
+        this.std = std;
+    }
 
     @Autowired
-    public CWorker(TestCaseRepository testCaseRepository, ProblemRepository problemRepository) {
-        this.testCaseRepository = testCaseRepository;
-        this.problemRepository = problemRepository;
+    public CLikeWorker(TestCaseRepository testCaseRepository, ProblemRepository problemRepository) {
+        super(testCaseRepository, problemRepository);
     }
 
-    public TaskResult work(Submission submission) throws IOException {
-        this.submission = submission;
-        this.problem = problemRepository.findOne(submission.getProblemId());
-
-        save();
-        TaskResult result = compile();
-        if (result.getStatus() != OK) {
-            clean();
-            return result;
-        }
-
-        result = run();
-        clean();
-        return result;
-    }
-
-    private void save() throws IOException {
+    public void save() throws IOException {
         cwd = baseDir + File.separator + submission.getId();
         Files.createDirectories(Paths.get(cwd));
-        Files.write(Paths.get(cwd + File.separator + fileName + ".c"), submission.getCode().getBytes());
+        Files.write(Paths.get(cwd + File.separator + fileName + this.getSuffix()), submission.getCode().getBytes());
     }
 
-    private TaskResult compile() throws IOException {
+    public TaskResult compile() throws IOException {
         CommandLine cmd = new CommandLine(compiler);
         cmd.addArgument("-basedir=" + cwd);
-        cmd.addArgument("-compiler=" + gcc);
-        cmd.addArgument("-filename=" + fileName + ".c");
+        cmd.addArgument("-compiler=" + this.getRealCompiler());
+        cmd.addArgument("-filename=" + fileName + this.getSuffix());
         cmd.addArgument("-timeout=" + watchdogTimeout);
+        cmd.addArgument("-std=" + this.getStd());
         logger.info(cmd.toString());
 
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
@@ -116,7 +106,7 @@ public class CWorker {
         return compile;
     }
 
-    private TaskResult run() throws IOException {
+    public TaskResult run() throws IOException {
         TaskResult run = new TaskResult();
         Long runtime = 0L, memory = 0L, counter = 0L;
 
@@ -131,6 +121,7 @@ public class CWorker {
             cmd.addArgument("-input=" + testCase.getInput());
             cmd.addArgument("-expected=" + testCase.getOutput());
             cmd.addArgument("-timeout=" + problem.getRuntimeLimit());
+            cmd.addArgument("-memory=" + problem.getMemoryLimit() * 2);
             logger.info(cmd.toString());
 
             try {
@@ -144,7 +135,19 @@ public class CWorker {
             ObjectMapper mapper = new ObjectMapper();
             TaskResult taskResult = mapper.readValue(stdout.toString(), TaskResult.class);
 
-            if (taskResult.getStatus() != Submission.STATUS_AC) return taskResult;
+            if (taskResult.getStatus() != Submission.STATUS_AC) {
+                // stdout limit
+                String o = stdout.toString().trim();
+                run.setOutput(o.length() > outputMaxLength ? o.substring(0, outputMaxLength) + "..." : o);
+                return taskResult;
+            }
+
+            // taskResult.getStatus() == Submission.STATUS_AC with memory limit exceeded.
+            if (taskResult.getMemory() > problem.getMemoryLimit()) {
+                run.setStatus(Submission.STATUS_MLE);
+                run.setError("Memory Limit Exceeded");
+                return taskResult;
+            }
 
             runtime += taskResult.getRuntime();
             memory += taskResult.getMemory();
@@ -155,13 +158,5 @@ public class CWorker {
         run.setMemory(memory / counter);
         run.setStatus(Submission.STATUS_AC);
         return run;
-    }
-
-    private void clean() {
-        try {
-            FileUtils.deleteDirectory(new File(cwd));
-        } catch (IOException e) {
-            logger.warn("Remove dir:\t" + cwd + " failed");
-        }
     }
 }
