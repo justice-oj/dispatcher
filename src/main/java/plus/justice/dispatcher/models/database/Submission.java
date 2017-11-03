@@ -8,9 +8,7 @@ import java.util.Date;
 public class Submission {
     public final static int LANGUAGE_C = 0;
     public final static int LANGUAGE_CPP = 1;
-    public final static int LANGUAGE_PERL6 = 2;
-    public final static int LANGUAGE_PYTHON3 = 3;
-    public final static int LANGUAGE_JAVA = 4;
+    public final static int LANGUAGE_JAVA = 2;
 
     public final static int STATUS_QUEUE = -1;
     public final static int STATUS_AC = 0;
