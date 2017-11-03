@@ -1,2 +1,5 @@
-# justice-dispatcher
-justice OJ dispatcher
+# Justice Online Judge
+
+This repo is the dispatcher of [Justice](https://www.justice.plus) online judge.
+
+For more details, please refer to [Justice Deployment Guide](https://github.com/liupangzi/justice-doc) or [My Blogs](https://tech.liuchao.me/tag/justice-oj/).
