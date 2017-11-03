@@ -31,39 +31,48 @@ public class Receiver {
     }
 
     @RabbitListener(queues = "${justice.rabbitmq.queue.name}")
-    public void handleMessage(QueueMessage message) throws Exception {
-        Submission submission = submissionRepository.findOne(message.getId());
-        logger.info("Submission:" + submission.toString());
+    public void handleMessage(QueueMessage message) {
+        try {
+            Submission submission = submissionRepository.findOne(message.getId());
+            if (submission == null) {
+                logger.error("Submission #" + message.getId() + " not found.");
+                return;
+            }
+            logger.info("Submission:" + submission.toString());
 
-        TaskResult taskResult;
-        if (submission.getLanguage().equals(Submission.LANGUAGE_C)) {
-            cLikeWorker.setSuffix(".c");
-            cLikeWorker.setStd("gnu11");
-            cLikeWorker.setRealCompiler("/usr/bin/gcc");
-            taskResult = cLikeWorker.work(submission);
-        } else if (submission.getLanguage().equals(Submission.LANGUAGE_CPP)) {
-            cLikeWorker.setSuffix(".cpp");
-            cLikeWorker.setStd("gnu++14");
-            cLikeWorker.setRealCompiler("/usr/bin/g++");
-            taskResult = cLikeWorker.work(submission);
-        } else if (submission.getLanguage().equals(Submission.LANGUAGE_JAVA)) {
-            taskResult = javaWorker.work(submission);
-        } else {
-            throw new Exception("Language not supported!");
-        }
-        logger.info("Sandbox returns: " + taskResult.toString());
+            TaskResult taskResult;
+            if (submission.getLanguage().equals(Submission.LANGUAGE_C)) {
+                cLikeWorker.setSuffix(".c");
+                cLikeWorker.setStd("gnu11");
+                cLikeWorker.setRealCompiler("/usr/bin/gcc");
+                taskResult = cLikeWorker.work(submission);
+            } else if (submission.getLanguage().equals(Submission.LANGUAGE_CPP)) {
+                cLikeWorker.setSuffix(".cpp");
+                cLikeWorker.setStd("gnu++14");
+                cLikeWorker.setRealCompiler("/usr/bin/g++");
+                taskResult = cLikeWorker.work(submission);
+            } else if (submission.getLanguage().equals(Submission.LANGUAGE_JAVA)) {
+                taskResult = javaWorker.work(submission);
+            } else {
+                logger.error("Language not supported: " + submission.getLanguage());
+                return;
+            }
+            logger.info("Sandbox returns: " + taskResult.toString());
 
-        submission.setStatus(taskResult.getStatus());
-        if (taskResult.getStatus() == Submission.STATUS_AC) {
-            submission.setRuntime(taskResult.getRuntime());
-            submission.setMemory(taskResult.getMemory());
-        } else if (taskResult.getStatus() == Submission.STATUS_WA) {
-            submission.setInput(taskResult.getInput());
-            submission.setOutput(taskResult.getOutput());
-            submission.setExpected(taskResult.getExpected());
-        } else {
-            submission.setError(taskResult.getError());
+            submission.setStatus(taskResult.getStatus());
+            if (taskResult.getStatus() == Submission.STATUS_AC) {
+                submission.setRuntime(taskResult.getRuntime());
+                submission.setMemory(taskResult.getMemory());
+            } else if (taskResult.getStatus() == Submission.STATUS_WA) {
+                submission.setInput(taskResult.getInput());
+                submission.setOutput(taskResult.getOutput());
+                submission.setExpected(taskResult.getExpected());
+            } else {
+                submission.setError(taskResult.getError());
+            }
+            submissionRepository.save(submission);
+        } catch (Exception e) {
+            logger.error(e.getMessage());
         }
-        submissionRepository.save(submission);
     }
 }
