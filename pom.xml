@@ -6,12 +6,12 @@
     <groupId>org.springframework</groupId>
     <artifactId>justice-dispatcher</artifactId>
     <packaging>war</packaging>
-    <version>0.6.0</version>
+    <version>0.6.2</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
         <artifactId>spring-boot-starter-parent</artifactId>
-        <version>1.5.6.RELEASE</version>
+        <version>1.5.8.RELEASE</version>
     </parent>
 
     <dependencies>
@@ -39,7 +39,7 @@
         <dependency>
             <groupId>commons-io</groupId>
             <artifactId>commons-io</artifactId>
-            <version>2.5</version>
+            <version>2.6</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>
