@@ -1,8 +1,11 @@
 package plus.justice.dispatcher.models.database;
 
+import lombok.Data;
+
 import javax.persistence.*;
 import java.util.Date;
 
+@Data
 @Entity
 @Table(name = "t_submission")
 public class Submission {
@@ -64,137 +67,5 @@ public class Submission {
     @PreUpdate
     protected void onUpdate() {
         updatedAt = new Date();
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public Long getUserId() {
-        return userId;
-    }
-
-    public void setUserId(Long userId) {
-        this.userId = userId;
-    }
-
-    public Long getProblemId() {
-        return problemId;
-    }
-
-    public void setProblemId(Long problemId) {
-        this.problemId = problemId;
-    }
-
-    public Integer getLanguage() {
-        return language;
-    }
-
-    public void setLanguage(Integer language) {
-        this.language = language;
-    }
-
-    public String getCode() {
-        return code;
-    }
-
-    public void setCode(String code) {
-        this.code = code;
-    }
-
-    public Integer getStatus() {
-        return status;
-    }
-
-    public void setStatus(Integer status) {
-        this.status = status;
-    }
-
-    public Long getRuntime() {
-        return runtime;
-    }
-
-    public void setRuntime(Long runtime) {
-        this.runtime = runtime;
-    }
-
-    public Long getMemory() {
-        return memory;
-    }
-
-    public void setMemory(Long memory) {
-        this.memory = memory;
-    }
-
-    public String getError() {
-        return error;
-    }
-
-    public void setError(String error) {
-        this.error = error;
-    }
-
-    public String getInput() {
-        return input;
-    }
-
-    public void setInput(String input) {
-        this.input = input;
-    }
-
-    public String getOutput() {
-        return output;
-    }
-
-    public void setOutput(String output) {
-        this.output = output;
-    }
-
-    public String getExpected() {
-        return expected;
-    }
-
-    public void setExpected(String expected) {
-        this.expected = expected;
-    }
-
-    public Date getCreatedAt() {
-        return createdAt;
-    }
-
-    public void setCreatedAt(Date createdAt) {
-        this.createdAt = createdAt;
-    }
-
-    public Date getUpdatedAt() {
-        return updatedAt;
-    }
-
-    public void setUpdatedAt(Date updatedAt) {
-        this.updatedAt = updatedAt;
-    }
-
-    @Override
-    public String toString() {
-        return "Submission{" +
-                "id=" + id +
-                ", userId=" + userId +
-                ", problemId=" + problemId +
-                ", language=" + language +
-                ", code='" + code + '\'' +
-                ", status=" + status +
-                ", runtime=" + runtime +
-                ", memory=" + memory +
-                ", error='" + error + '\'' +
-                ", input='" + input + '\'' +
-                ", output='" + output + '\'' +
-                ", expected='" + expected + '\'' +
-                ", createdAt=" + createdAt +
-                ", updatedAt=" + updatedAt +
-                '}';
     }
 }
