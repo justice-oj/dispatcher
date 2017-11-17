@@ -6,7 +6,7 @@
     <groupId>org.springframework</groupId>
     <artifactId>justice-dispatcher</artifactId>
     <packaging>war</packaging>
-    <version>0.6.2</version>
+    <version>1.0.0</version>
 
     <parent>
         <groupId>org.springframework.boot</groupId>
