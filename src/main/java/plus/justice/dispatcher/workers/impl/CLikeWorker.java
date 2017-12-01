@@ -7,7 +7,7 @@ import org.apache.commons.exec.PumpStreamHandler;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
-import org.springframework.stereotype.Component;
+import org.springframework.stereotype.Service;
 import plus.justice.dispatcher.models.database.Submission;
 import plus.justice.dispatcher.models.database.TestCase;
 import plus.justice.dispatcher.models.sandbox.TaskResult;
@@ -21,7 +21,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-@Component
+@Service
 @PropertySource("classpath:config-${spring.profiles.active}.properties")
 public class CLikeWorker extends WorkerAbstract {
     @Value("${justice.judger.code.tmp.filename}")
