@@ -1,18 +1,16 @@
 package plus.justice.dispatcher.workers;
 
+import plus.justice.dispatcher.models.database.Problem;
 import plus.justice.dispatcher.models.database.Submission;
-import plus.justice.dispatcher.models.sandbox.TaskResult;
+import plus.justice.dispatcher.models.database.TestCase;
 
 import java.io.IOException;
+import java.util.List;
 
 public interface IWorker {
-    TaskResult work(Submission submission) throws IOException;
+    void save(String cwd, Submission submission) throws IOException;
 
-    void save() throws IOException;
+    void compile(String cwd, Submission submission) throws RuntimeException;
 
-    TaskResult compile() throws IOException;
-
-    TaskResult run() throws IOException;
-
-    void clean();
+    void run(String cwd, Problem problem, List<TestCase> testCases, Submission submission) throws RuntimeException;
 }

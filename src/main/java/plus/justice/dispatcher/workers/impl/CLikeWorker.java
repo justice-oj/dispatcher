@@ -1,29 +1,32 @@
 package plus.justice.dispatcher.workers.impl;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import lombok.Data;
 import org.apache.commons.exec.CommandLine;
 import org.apache.commons.exec.DefaultExecutor;
 import org.apache.commons.exec.PumpStreamHandler;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
 import org.springframework.stereotype.Service;
+import plus.justice.dispatcher.models.database.Problem;
 import plus.justice.dispatcher.models.database.Submission;
 import plus.justice.dispatcher.models.database.TestCase;
 import plus.justice.dispatcher.models.sandbox.TaskResult;
-import plus.justice.dispatcher.repositories.ProblemRepository;
-import plus.justice.dispatcher.repositories.TestCaseRepository;
-import plus.justice.dispatcher.workers.WorkerAbstract;
+import plus.justice.dispatcher.workers.IWorker;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.List;
 
+@Data
 @Service
 @PropertySource("classpath:config-${spring.profiles.active}.properties")
-public class CLikeWorker extends WorkerAbstract {
+public class CLikeWorker implements IWorker {
     @Value("${justice.judger.code.tmp.filename}")
     private String fileName;
 
@@ -42,75 +45,47 @@ public class CLikeWorker extends WorkerAbstract {
     @Value("${justice.judger.watchdog.timeout}")
     private Integer watchdogTimeout;
 
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
     private String realCompiler;
-    private String suffix;
     private String std;
+    private String suffix;
 
-    private String getRealCompiler() {
-        return realCompiler;
+    public void save(String cwd, Submission submission) throws IOException {
+        Files.write(Paths.get(cwd + File.separator + fileName + "." + suffix), submission.getCode().getBytes());
     }
 
-    public void setRealCompiler(String realCompiler) {
-        this.realCompiler = realCompiler;
-    }
-
-    private String getSuffix() {
-        return suffix;
-    }
-
-    public void setSuffix(String suffix) {
-        this.suffix = suffix;
-    }
-
-    private String getStd() {
-        return std;
-    }
-
-    public void setStd(String std) {
-        this.std = std;
-    }
-
-    @Autowired
-    public CLikeWorker(TestCaseRepository testCaseRepository, ProblemRepository problemRepository) {
-        super(testCaseRepository, problemRepository);
-    }
-
-    public void save() throws IOException {
-        cwd = baseDir + File.separator + submission.getId();
-        Files.createDirectories(Paths.get(cwd));
-        Files.write(Paths.get(cwd + File.separator + fileName + this.getSuffix()), submission.getCode().getBytes());
-    }
-
-    public TaskResult compile() throws IOException {
+    public void compile(String cwd, Submission submission) throws RuntimeException {
         CommandLine cmd = new CommandLine(compiler);
         cmd.addArgument("-basedir=" + cwd);
-        cmd.addArgument("-compiler=" + this.getRealCompiler());
-        cmd.addArgument("-filename=" + fileName + this.getSuffix());
+        cmd.addArgument("-compiler=" + realCompiler);
+        cmd.addArgument("-filename=" + fileName + "." + suffix);
         cmd.addArgument("-timeout=" + watchdogTimeout);
-        cmd.addArgument("-std=" + this.getStd());
+        cmd.addArgument("-std=" + std);
         logger.info(cmd.toString());
 
         ByteArrayOutputStream stderr = new ByteArrayOutputStream();
         DefaultExecutor executor = new DefaultExecutor();
         executor.setStreamHandler(new PumpStreamHandler(null, stderr, null));
-        executor.execute(cmd);
-
-        TaskResult compile = new TaskResult();
-        if (stderr.toString().length() > 0) {
-            compile.setStatus(Submission.STATUS_CE);
-            compile.setError("Compile error");
-            logger.warn(stderr.toString());
-        } else {
-            compile.setStatus(OK);
+        try {
+            executor.execute(cmd);
+            if (stderr.toString().length() > 0) {
+                submission.setStatus(Submission.STATUS_CE);
+                submission.setError("Compile error");
+                logger.warn(stderr.toString());
+                throw new RuntimeException("Sandbox Aborted.");
+            }
+            logger.info("Compile OK");
+        } catch (IOException e) {
+            logger.warn("Compile error:\t" + e.getMessage());
+            throw new RuntimeException("An Error Occurred.");
         }
-        return compile;
     }
 
-    public TaskResult run() throws IOException {
-        TaskResult run = new TaskResult();
+    public void run(String cwd, Problem problem, List<TestCase> testCases, Submission submission) throws RuntimeException {
         Long runtime = 0L, memory = 0L, counter = 0L;
 
-        for (TestCase testCase : testCaseRepository.findByProblemId(submission.getProblemId())) {
+        for (TestCase testCase : testCases) {
             ByteArrayOutputStream stdout = new ByteArrayOutputStream();
             DefaultExecutor executor = new DefaultExecutor();
             executor.setWorkingDirectory(new File(cwd));
@@ -126,37 +101,47 @@ public class CLikeWorker extends WorkerAbstract {
 
             try {
                 executor.execute(cmd);
-            } catch (final Exception e) {
-                run.setStatus(Submission.STATUS_RE);
-                run.setError(e.getMessage());
-                return run;
+            } catch (IOException e) {
+                submission.setStatus(Submission.STATUS_RE);
+                submission.setError("Runtime Error.");
+                logger.info(e.getMessage());
+                throw new RuntimeException("Runtime Error.");
             }
 
-            ObjectMapper mapper = new ObjectMapper();
-            TaskResult taskResult = mapper.readValue(stdout.toString(), TaskResult.class);
+            try {
+                ObjectMapper mapper = new ObjectMapper();
+                TaskResult taskResult = mapper.readValue(stdout.toString(), TaskResult.class);
+                logger.info(stdout.toString());
 
-            if (taskResult.getStatus() != Submission.STATUS_AC) {
-                // stdout limit
-                String o = stdout.toString().trim();
-                run.setOutput(o.length() > outputMaxLength ? o.substring(0, outputMaxLength) + "..." : o);
-                return taskResult;
+                if (taskResult.getStatus() != Submission.STATUS_AC) {
+                    submission.setStatus(taskResult.getStatus());
+                    submission.setError(taskResult.getError());
+                    submission.setInput(taskResult.getInput());
+                    submission.setOutput(taskResult.getOutput());
+                    submission.setExpected(taskResult.getExpected());
+                    throw new RuntimeException("Wrong Answer.");
+                }
+
+                // taskResult.getStatus() == Submission.STATUS_AC with memory limit exceeded.
+                if (taskResult.getMemory() > problem.getMemoryLimit()) {
+                    submission.setStatus(Submission.STATUS_MLE);
+                    submission.setError("Memory Limit Exceeded");
+                    throw new RuntimeException("Memory Limit Exceeded.");
+                }
+
+                runtime += taskResult.getRuntime();
+                memory += taskResult.getMemory();
+                counter++;
+            } catch (IOException e) {
+                submission.setStatus(Submission.STATUS_RE);
+                submission.setError("Runtime Error.");
+                logger.warn(e.getMessage());
+                throw new RuntimeException("Execution Aborted.");
             }
-
-            // taskResult.getStatus() == Submission.STATUS_AC with memory limit exceeded.
-            if (taskResult.getMemory() > problem.getMemoryLimit()) {
-                run.setStatus(Submission.STATUS_MLE);
-                run.setError("Memory Limit Exceeded");
-                return taskResult;
-            }
-
-            runtime += taskResult.getRuntime();
-            memory += taskResult.getMemory();
-            counter++;
         }
 
-        run.setRuntime(runtime / counter);
-        run.setMemory(memory / counter);
-        run.setStatus(Submission.STATUS_AC);
-        return run;
+        submission.setRuntime(runtime / counter);
+        submission.setMemory(memory / counter);
+        submission.setStatus(Submission.STATUS_AC);
     }
 }
