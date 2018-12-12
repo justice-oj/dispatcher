@@ -18,7 +18,8 @@ public class IndexController {
     }
 
     @GetMapping(path = "/submission")
-    public @ResponseBody Submission getSubmission(@RequestParam Long id) {
-        return submissionRepository.findOne(id);
+    public @ResponseBody
+    Submission getSubmission(@RequestParam Long id) {
+        return submissionRepository.findById(id).orElse(null);
     }
 }

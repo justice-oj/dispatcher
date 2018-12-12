@@ -83,7 +83,7 @@ public class CLikeWorker implements IWorker {
     }
 
     public void run(String cwd, Problem problem, List<TestCase> testCases, Submission submission) throws RuntimeException {
-        Long runtime = 0L, memory = 0L, counter = 0L;
+        long runtime = 0L, memory = 0L, counter = 0L;
 
         for (TestCase testCase : testCases) {
             ByteArrayOutputStream stdout = new ByteArrayOutputStream();
@@ -140,8 +140,9 @@ public class CLikeWorker implements IWorker {
             }
         }
 
-        submission.setRuntime(runtime / counter);
-        submission.setMemory(memory / counter);
+        long averageRuntime = counter == 0 ? 0 : runtime / counter, averageMemory = counter == 0 ? 0 : memory / counter;
+        submission.setRuntime(averageRuntime);
+        submission.setMemory(averageMemory);
         submission.setStatus(Submission.STATUS_AC);
     }
 }

@@ -63,9 +63,9 @@ public class Receiver {
 
     @RabbitListener(queues = "${justice.rabbitmq.queue.name}")
     public void handleMessage(QueueMessage message) {
-        context.setSubmission(submissionRepository.findOne(message.getId()));
+        context.setSubmission(submissionRepository.findById(message.getId()).orElse(null));
         logger.info("Submission: #" + context.getSubmission().getId());
-        context.setProblem(problemRepository.findOne(context.getSubmission().getProblemId()));
+        context.setProblem(problemRepository.findById(context.getSubmission().getProblemId()).orElse(null));
         logger.info("Problem: #" + context.getProblem().getId());
         context.setTestCases(testCaseRepository.findByProblemId(context.getProblem().getId()));
 

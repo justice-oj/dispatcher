@@ -51,7 +51,7 @@ public class JavaJudgerTest {
         submission.setCode(new String(Files.readAllBytes(resourceLoader.getResource(s).getFile().toPath())));
 
         context.setSubmission(submission);
-        context.setProblem(problemRepository.findOne(context.getSubmission().getProblemId()));
+        context.setProblem(problemRepository.findById(context.getSubmission().getProblemId()).orElse(null));
         context.setTestCases(testCaseRepository.findByProblemId(context.getProblem().getId()));
         context.setWorker(javaWorker);
         context.process();
