@@ -88,7 +88,7 @@ public class JavaJudgerTest {
         Submission submission = getTaskResult("classpath:tests/java/3.in");
 
         assertThat(submission.getStatus()).isEqualTo(Submission.STATUS_RE);
-        assertThat(submission.getError()).contains("String index out of range").contains("Exception ");
+        assertThat(submission.getError()).contains("StringIndexOutOfBoundsException");
     }
 
     @Test
